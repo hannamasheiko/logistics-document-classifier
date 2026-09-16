@@ -366,3 +366,194 @@ Evaluation command, малий classification held-out set, PostgreSQL із мі
 - Planning edits перевірено через targeted diffs/searches, порядок tasks, пошук застарілих references і Markdown fence checks. Працездатність application не заявлялася як перевірена.
 - Django не ініціалізовано, dependencies не встановлено, application code і tests не створено, OpenAI API calls не виконано, секрети не читали.
 - Цей documentation stage зафіксовано в initial commit `Add initial project design and implementation plan`. Дозвіл закомітити й запушити цю документацію не розпочинає application implementation.
+
+## 11. Task 1 — відбір контрольних PDF триває
+
+Початковий documentation commit `a41f05f` запушено в `origin/main`. Після цього користувач попросив покрокове execution, погодив роботу безпосередньо в `main` і на цьому кроці дозволив лише відбір контрольних PDF.
+
+**Оригінальний промпт (українською):**
+
+> Добре, тоді давай переходимо до другого пункту — підібрати контрольний PDF і все, що там описано.
+
+Завантажено й перевірено два офіційні порожні бланки: BOL Union Pacific (запропонований `BOL`) і commercial goods invoice UPS (запропонований `OTHER`). Обидва PDF односторінкові та мають текст, який витягується; rendering через PDFium підтвердив їхній вигляд. Текст UPS містить службові символи. Файли збережено в ігнорованій локальній директорії, оскільки дозвіл на поширення не встановлено.
+
+Оцінено інші джерела: FedEx POD у державному архіві є частиною пакета різних документів, офіційний приклад invoice UPS міститься в інструкції, а кілька прямих завантажень завершилися помилками або повернули HTML. Їх не зафіксовано як готові окремі inputs. Poppler зіткнувся з Fontconfig errors; наявний PDFium забезпечив візуальну перевірку без встановлення dependencies.
+
+Деталі, URLs, hashes, limitations і запропоновані labels записано в `docs/experiments/primary-confidence.md`. Контрольний набір частковий; заповнені INVOICE/POD inputs ще відсутні, а використання порожніх форм очікує review користувача. Model/API experiment, manifest, application implementation або новий commit не виконувалися. `git diff --check` пройшов, і підтверджено, що Git ігнорує обидва завантажені PDF.
+
+## 12. Task 1 — checkpoint локального text extraction
+
+Користувач прийняв раніше знайдені порожні бланки як допоміжні controls для першої проби та надав додаткові заповнені приклади BOL, POD, transport invoice і сторонніх документів. Для початкової feasibility-проби reviewed set звужено до одного чіткого text-layer example на кожен погоджений клас:
+
+- `bol_3.pdf` → `BOL`;
+- `dhl_pod.pdf` → `POD`;
+- `US_Inland_Trucking_Invoice_Filled.pdf` → `INVOICE`;
+- `commercial_invoice.pdf` → `OTHER`, оскільки він виставляє рахунок за товари, а не за транспортні послуги.
+
+Image-only examples залишаються для пізнішої OCR/visual iteration. Multi-document PDF не подаються цілком; кожну корисну сторінку перед використанням треба відділити в окремий PDF. Відібрані feasibility controls не є формальним evaluation manifest або незалежним held-out set.
+
+**Оригінальний промпт (українською):**
+
+> Продовжуємо Task 1. Спочатку підготуй локальне text extraction для відібраних text-layer PDF і збережи extracted text у компактному форматі для подальшого порівняння. Не аналізуй ще features і не викликай OpenAI API. Після extraction покажи, які документи успішно прочитані і який текст отримано.
+
+Додано невелику standalone extraction utility з використанням уже доступного `pypdf`. Вона зберігає межі сторінок і записує компактний UTF-8 JSONL із назвою source file, expected class, кількістю сторінок, кількістю символів та extracted text. Чотири локальні копії й generated corpus залишаються поза Git, оскільки provenance джерел і дозвіл на поширення не встановлено. Значення payment account, routing і SWIFT замасковано, бо вони не потрібні для classification.
+
+Extraction успішно виконано для всіх чотирьох controls: `BOL` — 3 772 символи, `POD` — 580, `INVOICE` — 1 855, `OTHER` — 2 446. Generated corpus успішно прочитано повторно; перевірено порядок records, labels, page counts і page arrays. Test-first cycle перевірив extraction двосторінкового PDF, Unicode JSONL serialization і маскування payment identifiers; усі три tests пройшли. OCR, feature analysis, OpenAI API call, prompt design, routing calculation, Django work, dependency installation або commit не виконувалися.
+
+## 13. Task 1 — review OpenAI structured output і запропонований бюджет live calls
+
+Користувач закрив checkpoint відбору controls і локального extraction та попросив перейти до наступного пункту Task 1.
+
+**Оригінальний промпт (українською):**
+
+> Другий пункт Task 1 вважаю закритим. Переходь до наступного пункту за планом.
+
+Перед будь-яким API call переглянуто офіційну документацію OpenAI. Responses API підтримує strict Structured Outputs через `text.format`; Python SDK також підтримує parsing structured responses у Pydantic models. Responses містять usage data і підтримують як output-token limit, так і `store: false`. Переглянуті сторінки моделей підтверджують, що GPT-5.4 Mini і GPT-5.6 Terra підтримують Responses API та Structured Outputs.
+
+Для bounded text-layer feasibility experiment запропонована початкова configuration: dated snapshot `gpt-5.4-mini-2026-03-17` через Responses API, strict JSON Schema, low reasoning effort, `store: false` і output cap 1 200 tokens. GPT-5.6 Terra залишається лише як відповідь на конкретний capability blocker, оскільки його опубліковані token prices істотно вищі.
+
+Запропонований бюджет live calls: чотири обов'язкові calls, по одному на кожен відібраний class control, і не більше одного retry для кожного документа лише за technical, incomplete, refusal або schema-level failure. Це обмежує experiment вісьмома calls. Консервативна upper-bound estimate з 4 000 input і 1 200 output tokens на call становить $0.0672 за опублікованими цінами GPT-5.4 Mini, тому запропонований spend guardrail — $0.10. Actual usage потрібно записати для кожного call.
+
+Model/configuration і бюджет live calls очікують рішення користувача. Жодного API request не надіслано; feature/evidence schema, prompt, deterministic routing rules, score formula і threshold на цьому checkpoint не проєктувалися й не обиралися.
+
+## 14. Task 1 — погоджений API budget і candidate diagnostic evidence contract
+
+Користувач погодив `gpt-5.4-mini-2026-03-17`, Responses API, strict Structured Outputs, low reasoning effort, `store: false`, не більше восьми calls і spend guardrail $0.10. Початковий `max_output_tokens=1200` збережено; його переглянемо окремо лише тоді, коли response буде `incomplete` саме через цей limit.
+
+**Оригінальний промпт (українською):**
+
+> ак, погоджую `gpt-5.4-mini-2026-03-17`, Responses API, strict Structured Outputs, `reasoning=low`, `store=false`, максимум 8 викликів і spend guardrail $0.10. `max_output_tokens=1200` залишаємо для першої перевірки; якщо отримаємо `incomplete` саме через output limit, тоді окремо збільшимо його. Переходь до наступного пункту Task 1
+
+Наступний пункт Task 1 обмежено компактною reviewable пропозицією diagnostic features/evidence. Замаскований extracted text чотирьох controls проаналізовано локально. Він показав дві корисні пастки для feasibility test: BOL містить незаповнені headings delivery fields, тоді як commercial invoice містить B/L reference. Тому keywords і headings самі по собі явно є недостатнім evidence.
+
+Пропозиція визначає semantics `present / absent / unclear` і короткі exact quotes для observations зі status `present`. Вона використовує три diagnostic features для кожного target class, дві позитивні features для `OTHER` і чотири cross-class observations для combined BOL/POD, multiple target purposes, unreadable content і contradictory evidence. `OTHER` потребує positive evidence non-target identity або primary purpose; його не можна виводити лише з відсутніх target features.
+
+Модель має повертати лише candidate class і structured observations. Вона не повинна повертати probability, acceptance/fallback decision, deterministic score або threshold. Exact JSON Schema/Python representation, weights, score calculation і threshold навмисно ще не встановлено. Feature proposal очікує review користувача; жодного OpenAI API call не виконано.
+
+## 15. Task 1 — закодовані strict schema і prompt очікують review
+
+Користувач погодив diagnostic feature set і дозволив закодувати strict JSON Schema та experiment prompt з явним review gate перед першим live API call.
+
+**Оригінальний промпт (українською):**
+
+> Погоджую цей набір ознак. Закодуй для experiment strict JSON Schema і prompt, але перед першим live API call покажи мені їх на review.
+
+Standalone module `experiments.primary_confidence` тепер містить Responses API contract `text.format` і classification instructions. Schema вимагає один candidate class, усі одинадцять fixed class-specific feature observations і всі чотири cross-class diagnostics. Кожен observation має обов'язковий status `present / absent / unclear` і nullable evidence. Усі object schemas відхиляють undeclared properties.
+
+Prompt визначає four-class taxonomy, трактує document як untrusted data, вимагає короткі exact quotes лише для observations зі status `present` і повторює погоджені guardrails для blank delivery/signature headings, referenced B/L numbers, commercial invoices і positive evidence для `OTHER`. Він явно забороняє model-generated probability, score, threshold, acceptance, fallback або рішення `UNCERTAIN`.
+
+Implementation виконано через red-green test cycle. Чотири нові contract tests спочатку впали через відсутність module, а після додавання мінімальної implementation пройшли. OpenAI SDK import, credential access, API client або network-call path не додавалися. Закодовані schema і prompt очікують review користувача перед будь-яким live call.
+
+## 16. Task 1 — підготовлено guarded live experiment runner
+
+Користувач погодив schema і prompt та обрав `OPENAI_API_KEY` у process environment для standalone experiment. Користувач вимагав підготувати runner із погодженими safeguards і явно зупинитися з точною командою перед першим live call.
+
+**Оригінальний промпт (українською):**
+
+> Погоджую цю schema і prompt для першого live API experiment. Використовуємо `OPENAI_API_KEY` через environment variable для standalone experiment. Підготуй experiment із цими запобіжниками, але перед першим live API call зупинись і скажи мені точну команду запуску.
+
+Standalone module тепер містить погоджену request configuration, strict response validation, evidence-substring checks, usage/cost accounting, один explicit retry на document, глобальний cap у вісім calls і spend guardrail $0.10. Response `incomplete`, спричинений output limit 1 200 tokens, зупиняє experiment без retry або автоматичної зміни limit. Автоматичні retries SDK вимкнено, request timeout становить 60 секунд.
+
+Live execution вимагає `--run-live`, наявності імені environment variable `OPENAI_API_KEY` і відсутності `OPENAI_LOG`. Ключ не приймається через command arguments, не читається experiment logic, не друкується й не зберігається; OpenAI SDK споживає його безпосередньо з environment. Results містять лише parsed observations і operational metadata. Raw document text, HTTP data, raw responses, exception messages і credential values не зберігаються. Local results ігноруються Git.
+
+Bundled Python не містив OpenAI SDK. Нічого автоматично не встановлювалося. Задокументований local setup використовує isolated `.venv` і pin поточного official SDK release `openai==3.14.1`. Live command відділено від setup; користувач вводить ключ без exposure у shell history.
+
+Runner розроблено через додаткові red-green cycles для configuration guards, structured-output validation, orchestration, retry limits, output-limit stopping, safe SDK-response normalization і generic exception classification. Жодного live API call не виконано.
+
+## 17. Task 1 — перший live run і діагностика validation boundary
+
+Користувач локально запустив погоджений experiment на чотирьох controls і надав terminal result.
+
+**Оригінальний промпт (terminal output):**
+
+> `Experiment finished: 0/4 completed, 8 calls, estimated spend $0.030717.`
+> `Sanitized local result: experiments/local-results/primary-confidence.json`
+
+Sanitized result показав, що всі вісім Responses API calls завершилися: кожен із чотирьох controls отримав initial call і один retry. Technical failures, refusals або incomplete responses через output limit не було. Кожну response після цього відхилила локальна JSON/evidence validation під generic category `invalid_structured_output`.
+
+Це ще не показує, що model classification була неправильною. Старий runner відкинув точний validation subtype і parsed rejected observations, а `store: false` не дозволяє отримати старі response bodies. Тому exact root cause неможливо відновити з першого run. Leading hypothesis — системна невідповідність strict local evidence checks, наприклад non-exact evidence quote або non-null evidence для observation зі status absent/unclear, але це ще не підтверджено.
+
+Diagnostic gap виправлено без послаблення acceptance rules. Test-first changes додають safe validation codes, affected observation IDs і локально збережений parsed rejected output, водночас і далі виключаючи source text, raw HTTP data, exception messages і credentials. Також додано single-control diagnostic mode `--only-source`, щоб не повторювати весь run на чотирьох controls. Запропонований diagnostic для `dhl_pod.pdf` використовує один call у нормальному випадку і не більше двох із retry. Додаткових calls не виконано, оскільки погоджений cap у вісім calls уже вичерпано.
+
+## 18. Task 1 — diagnostic run підтвердив presentation mismatch
+
+Користувач погодив не більше двох додаткових calls і запустив single-control diagnostic для `dhl_pod.pdf`. Він використав обидва calls і показав estimated spend $0.0070725. Обидві API responses завершилися та обрали `POD`, але локальна validation відхилила їх із `evidence_not_exact_substring` на `bol_shipment_structure`.
+
+Збережені parsed outputs встановили root cause: модель скопіювала relevant source phrases, але включила literal outer quotation-mark characters у кожен evidence string. Source містив внутрішні фрази без цих characters. Обидві responses проходять повну local structural/evidence validation, якщо видалити лише цю зовнішню presentation pair.
+
+Test-first correction тепер виконує bounded normalization лише тоді, коли original evidence не є source substring, а його inner text є exact substring. Інші non-exact evidence залишаються invalid. Prompt також прямо вказує моделі не додавати quotation-mark characters. Historical diagnostic outputs повторно перевірено локально; обидва тепер проходять і зберігають expected candidate `POD`.
+
+Diagnostic також виявив окрему semantic error: обидва outputs позначили `bol_shipment_structure` present лише на основі waybill reference, всупереч guardrail цієї feature. Цю error normalization не приховав. Вона показує, що strict structure і exact quote provenance не встановлюють semantic correctness, та підтримує вимогу class-specific combination у майбутніх deterministic sufficiency rules. Нового full-control run не виконано.
+
+## 19. Task 1 — погоджено та обмежено rerun решти controls
+
+Користувач погодив додатковий run лише для `BOL`, `INVOICE` і `OTHER`: три calls у нормальному випадку і не більше шести з retry. Уже validated POD control повторно не запускається.
+
+**Оригінальний промпт (українською):**
+
+> так
+
+Runner тепер підтримує повторювані arguments `--only-source` і cumulative accounting попереднього spend. Уже витрачені $0.0377895 передаються явно. Перед кожним call runner резервує початковий conservative planning bound $0.0084 на call і відмовляється починати call, який може перевищити cumulative guardrail $0.10. Цей rerun підготовлено, але не виконано.
+
+## 20. Task 1 — результати решти controls і semantic evidence findings
+
+Користувач запустив погоджений subset `BOL`, `INVOICE` і `OTHER`. Чотири calls коштували estimated $0.015702, довівши cumulative estimated spend до $0.0534915. INVOICE і OTHER пройшли local validation із першого call зі своїми expected candidates. Обидві BOL attempts обрали expected candidate, але не пройшли evidence validation, оскільки quote transport obligation замінив пропущений source text на ellipsis. Один BOL quote також замінив PDF line break пробілом.
+
+Разом із попереднім POD diagnostic усі чотири simple controls отримали expected candidate class. Це демонструє initial structured-classification feasibility, але не встановлює accuracy або routing reliability на representative set.
+
+Manual semantic review виявив recurring non-candidate false positives. Зокрема, `bol_shipment_structure` був present для всіх чотирьох classes на основі generic shipment або route details. Transport invoice трактував delivery-date field як completed delivery event, а commercial invoice трактував goods-valuation freight як transport charge і водночас повідомив multiple target purposes на основі своєї commercial-invoice identity. Тому проста total count present features була б misleading.
+
+Результат залишає два technical decisions для explicit review замість silent implementation: continuous source evidence може обґрунтовано дозволяти whitespace normalization, внесену PDF extraction, водночас і далі відхиляючи ellipses; deterministic routing може потребувати candidate-class critical combinations і deriving ambiguity/contradiction з цих combinations замість прямої довіри model-reported cross-class diagnostics. Подальших API calls не виконано.
+
+## 21. Task 1 — deterministic sufficiency/routing experiment
+
+Користувач погодив local deterministic routing experiment на основі critical feature combinations і явно відклав будь-який final production score або threshold.
+
+**Оригінальний промпт (українською):**
+
+> Так, погоджую цей напрям. Переходь до deterministic sufficiency/routing experiment на основі critical feature combinations. Поки що не фіксуй фінальний threshold/score як готове production-рішення — спочатку перевір поведінку цих правил на наших controls і покажи результат.
+
+Continuous evidence matching тепер дозволяє PDF whitespace normalization, водночас і далі відхиляючи ellipses, paraphrases і non-contiguous excerpts. Pure experiment rules визначають complete combinations для BOL, POD, INVOICE і positive OTHER. Established complete BOL+POD evidence стає uncertainty без fallback; incomplete або contradictory combinations спрямовуються на escalation; model-supplied diagnostics залишаються advisory.
+
+На latest stored responses POD, INVOICE і OTHER проходять provenance та отримують `ACCEPT`. BOL має expected candidate і complete BOL combination, але його obligation evidence містить ellipsis і тому отримує `ESCALATE` через invalid evidence. В Iteration 1 ця escalation тимчасово стала б semantic `UNCERTAIN`.
+
+Кожен control має candidate match ratio `1.0`, включно з provenance-invalid BOL. Тому малий simple set не може обґрунтувати numerical threshold або показати score discrimination. Provenance gate і critical-combination rules дають корисну behavior, а final score, threshold і routing quality залишаються відкладеними до systematic evaluation з incomplete, unclear, ambiguous і contradictory examples.
+
+Test-first synthetic cases покривають complete acceptance, incomplete escalation, established combined BOL/POD, target contradiction для OTHER і advisory-only model diagnostics. Додаткових API calls не виконано.
+
+## 22. Task 1 — підготовлено мінімальний result contract і G1 review
+
+Користувач попросив завершити пункт 8 Task 1 і підготувати G1 review з фактичними результатами й обмеженнями, без нових API calls, початку Task 2 або створення commit.
+
+**Оригінальний промпт (українською):**
+
+> Рухайся далі по Task 1 за планом. Заверши пункт 8, потім підготуй пункт 9 — G1 review з фактичними результатами й обмеженнями. Нових API calls не роби, Task 2 ще не починай, commit не створюй без мого окремого дозволу.
+
+Запропонований мінімальний logical result contract тепер відокремлює model observations, provenance validation, backend-derived combinations, routing decisions, execution metadata і technical failures. Він вимагає, щоб invalid provenance не міг бути accepted, model diagnostics залишалися advisory, `OTHER` потребував positive non-target evidence, candidate class не ставав final автоматично, а будь-який майбутній score описувався як routing signal, а не probability. Точні Python types, persistence fields, score formula і threshold залишаються відкладеними до G0 і Task 2E.
+
+Гіпотези Task 2E тепер зосереджені на candidate behavior для кожного class, incorrect acceptance порівняно з корисною або зайвою escalation, provenance порівняно із semantic correctness, positive `OTHER`, handling combined BOL/POD і тому, чи розрізняє будь-який score incomplete, unclear, ambiguous і contradictory examples. Усі чотири поточні controls мають candidate match ratio `1.0`, тому не обґрунтовують вибір threshold.
+
+Підготовлена рекомендація G1 — прийняти evidence-based architecture direction і мінімальний contract без прийняття production routing settings. У 14 calls усі чотири simple controls отримали expected candidate class; latest deterministic rules приймають POD, INVOICE і OTHER та спрямовують BOL на escalation, оскільки його required evidence містить invalid ellipsis. Cumulative estimated spend становив $0.0534915. Report явно фіксує як обмеження малий non-held-out set, semantic false positives, відсутнє scanned/visual coverage, невирішений BOL provenance, відсутність threshold discrimination і revisions prompt/validator.
+
+Вузька корекція prompt тепер прямо забороняє ellipses і поєднання non-contiguous passages в evidence. Її contract test спочатку впав, а після додавання формулювання пройшов. За цією інструкцією корекцію свідомо не перевіряли live, тому G1 report позначає її як неперевірену post-run correction. Experiment identifiers запропоновано зафіксувати лише після погодження G1 користувачем. API calls, роботи над Task 2 або commit не виконувалися.
+
+## 23. Task 1 / G1 погоджено та закрито
+
+Користувач погодив G1 для architecture direction, мінімального evidence-based result contract і запропонованих experiment identifiers. Користувач явно не погодив production score, threshold або підтверджену routing quality; вони залишаються відкладеними до systematic evaluation у Task 2E. Користувач попросив позначити Task 1 завершеним, не починаючи Task 2 і не створюючи commit.
+
+**Оригінальний промпт (українською):**
+
+> Погоджую G1: architecture direction, мінімальний evidence-based result contract та запропоновані experiment identifiers. Production score/threshold і підтверджена routing quality не погоджуються та залишаються для systematic evaluation у Task 2E.
+> Зафіксуй G1 як approved і познач Task 1 завершеним. Task 2 поки не починай і commit без окремого дозволу не створюй.
+
+G1 report тепер фіксує approval і його явну межу. Provider, endpoint, model, config, prompt, schema та experimental routing-rules identifiers заморожено для artifact Task 1 і виставлено як constants у standalone experiment modules; майбутні sanitized summaries містять погоджені provider/endpoint/config/prompt/schema metadata. Implementation plan позначає всі дії Task 1 завершеними та залишає Task 2 недоторканим. API call або commit не виконувалися.
+
+## 24. Погоджено commit Task 1
+
+Користувач явно погодив commit завершених змін Task 1.
+
+**Оригінальний промпт (українською):**
+
+> Добре, давай закомітимо зміни.
+
+Переглянутий commit містить standalone AI feasibility experiment, deterministic routing probe, local extraction utility, tests, G1 report, завершений status Task 1 у plan, ignore rules для local artifacts і дзеркальну engineering history. Local PDF, extracted document text, API result files, virtual environments, IDE files, bytecode і secrets залишаються поза Git. Commit message: `Complete Task 1 AI feasibility experiment`.

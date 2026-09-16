@@ -24,3 +24,12 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
+
+# Downloaded third-party control PDFs (redistribution not established)
+experiments/local-control-pdfs/
+
+# Extracted third-party control text (kept local with source PDFs)
+experiments/local-control-text/
+
+# Local live-experiment results (may contain source evidence excerpts)
+experiments/local-results/

@@ -366,3 +366,193 @@ The user approved exactly these three reductions and requested no other plan cha
 - Planning edits were checked through targeted diffs/searches, task ordering, stale-reference searches, and Markdown fence checks. No application behavior has been claimed as verified.
 - Django has not been initialized, dependencies have not been installed, application code and tests have not been created, OpenAI API calls have not been made, and secrets have not been read.
 - This documentation stage is recorded in the initial commit `Add initial project design and implementation plan`. Authorization to commit and push this documentation does not start application implementation.
+
+## 11. Task 1 — control-PDF selection in progress
+
+The initial documentation commit `a41f05f` was pushed to `origin/main`. The user subsequently requested step-by-step execution, approved working directly on `main`, and authorized only control-PDF selection at this step.
+
+**Original prompt (translated from Ukrainian):**
+
+> Good, then let's move to the second item—select a control PDF and everything described there.
+
+Two official blank forms were downloaded and inspected: Union Pacific BOL (proposed `BOL`) and UPS commercial goods invoice (proposed `OTHER`). Both are one-page PDFs with extractable text; PDFium rendering confirmed their layouts. The UPS text contains control characters. The files are kept in an ignored local directory because redistribution permission has not been established.
+
+Other sources were assessed: a government-hosted FedEx POD occurs inside a multi-document filing, an official UPS invoice sample is embedded in a guide, and several direct downloads failed or returned HTML. These are not recorded as ready standalone inputs. Poppler hit Fontconfig errors; existing PDFium provided the visual check without installing dependencies.
+
+Details, URLs, hashes, limitations and proposed labels are recorded in `docs/experiments/primary-confidence.md`. The control set is partial; completed INVOICE/POD inputs remain missing and blank-form use awaits user review. No model/API experiment, manifest, application implementation, or new commit was performed. `git diff --check` passed and both downloaded PDFs were confirmed ignored by Git.
+
+## 12. Task 1 — local text-extraction checkpoint
+
+The user accepted the previously found blank forms as supplemental first-probe controls and supplied additional filled BOL, POD, transport-invoice, and unrelated-document examples. The reviewed set was narrowed to one clear text-layer example per agreed class for the initial feasibility probe:
+
+- `bol_3.pdf` → `BOL`;
+- `dhl_pod.pdf` → `POD`;
+- `US_Inland_Trucking_Invoice_Filled.pdf` → `INVOICE`;
+- `commercial_invoice.pdf` → `OTHER` because it bills for goods rather than transport services.
+
+Image-only examples remain reserved for the later OCR/visual iteration. Multi-document PDFs are not submitted intact; any useful page must be separated into its own PDF before use. The selected feasibility controls are not a formal evaluation manifest or independent held-out set.
+
+**Original prompt (translated from Ukrainian):**
+
+> Let us continue Task 1. First prepare local text extraction for the selected text-layer PDFs and save the extracted text in a compact format for later comparison. Do not analyze features yet and do not call the OpenAI API. After extraction, show which documents were read successfully and what text was obtained.
+
+A small standalone extraction utility was added using the already available `pypdf`. It preserves page boundaries and writes compact UTF-8 JSONL containing the source filename, expected class, page count, character count, and extracted text. Four local copies and the generated corpus remain ignored by Git because source provenance and redistribution permission are not established. Payment account, routing, and SWIFT values are masked because they are not needed for classification.
+
+The extraction succeeded for all four controls: `BOL` 3,772 characters, `POD` 580, `INVOICE` 1,855, and `OTHER` 2,446. The generated corpus was parsed back successfully and its record order, labels, page counts, and page arrays were checked. A test-first cycle verified two-page extraction, Unicode JSONL serialization, and payment-identifier masking; all three tests passed. No OCR, feature analysis, OpenAI API call, prompt design, routing calculation, Django work, dependency installation, or commit was performed.
+
+## 13. Task 1 — OpenAI structured-output review and proposed live-call budget
+
+The user closed the control-selection and local-extraction checkpoint and asked to proceed to the next Task 1 item.
+
+**Original prompt (translated from Ukrainian):**
+
+> I consider the second item of Task 1 closed. Move to the next item in the plan.
+
+Official OpenAI documentation was reviewed before any API call. The Responses API supports strict Structured Outputs through `text.format`; the Python SDK also supports parsing structured responses into Pydantic models. Responses expose usage data and support both an output-token limit and `store: false`. The reviewed model pages confirm that GPT-5.4 Mini and GPT-5.6 Terra support the Responses API and Structured Outputs.
+
+For the bounded text-layer feasibility experiment, the proposed starting configuration is the dated `gpt-5.4-mini-2026-03-17` snapshot through the Responses API, strict JSON Schema, low reasoning effort, `store: false`, and a 1,200-token output cap. GPT-5.6 Terra is retained only as a response to a concrete capability blocker because its published token prices are materially higher.
+
+The proposed live-call budget is four required calls, one per selected class control, with at most one retry per document only for a technical, incomplete, refusal, or schema-level failure. This caps the experiment at eight calls. A conservative upper-bound estimate using 4,000 input and 1,200 output tokens per call is $0.0672 at the published GPT-5.4 Mini prices, so the proposed spend guardrail is $0.10. Actual usage must be recorded per call.
+
+The model/configuration and live-call budget remain pending user approval. No API request has been sent, and the feature/evidence schema, prompt, deterministic routing rules, score formula, and threshold have not been designed or selected at this checkpoint.
+
+## 14. Task 1 — approved API budget and candidate diagnostic evidence contract
+
+The user approved `gpt-5.4-mini-2026-03-17`, the Responses API, strict Structured Outputs, low reasoning effort, `store: false`, no more than eight calls, and a $0.10 spend guardrail. The initial `max_output_tokens=1200` remains in place; it will be reconsidered separately only if a response is `incomplete` specifically because of that limit.
+
+**Original prompt (translated from Ukrainian):**
+
+> Yes, I approve `gpt-5.4-mini-2026-03-17`, Responses API, strict Structured Outputs, `reasoning=low`, `store=false`, a maximum of 8 calls, and a $0.10 spend guardrail. We keep `max_output_tokens=1200` for the first test; if we receive `incomplete` specifically because of the output limit, we will then increase it separately. Move to the next item of Task 1.
+
+The next Task 1 item was limited to a compact, reviewable diagnostic feature/evidence proposal. The masked extracted text of the four controls was examined locally. It exposed two useful traps for the feasibility test: the BOL contains uncompleted delivery-field headings, while the commercial invoice contains a B/L reference. Therefore, keywords and headings alone are explicitly insufficient evidence.
+
+The proposal defines `present / absent / unclear` semantics and short exact quotes for `present` observations. It uses three diagnostic features for each target class, two positive `OTHER` features, and four cross-class observations covering combined BOL/POD, multiple target purposes, unreadable content, and contradictory evidence. `OTHER` requires positive evidence of a non-target identity or primary purpose; it cannot be inferred merely from missing target features.
+
+The model should return a candidate class and structured observations only. It must not return a probability, acceptance/fallback decision, deterministic score, or threshold. Exact JSON Schema/Python representation, weights, score calculation, and threshold are still deliberately unset. The feature proposal is pending user review, and no OpenAI API call has been made.
+
+## 15. Task 1 — encoded strict schema and prompt awaiting review
+
+The user approved the diagnostic feature set and authorized encoding the strict JSON Schema and experiment prompt, with an explicit review gate before the first live API call.
+
+**Original prompt (translated from Ukrainian):**
+
+> I approve this feature set. Encode the strict JSON Schema and prompt for the experiment, but show them to me for review before the first live API call.
+
+A standalone `experiments.primary_confidence` module now contains the Responses API `text.format` contract and classification instructions. The schema requires one candidate class, all eleven fixed class-specific feature observations, and all four cross-class diagnostics. Every observation has a required `present / absent / unclear` status and nullable evidence. All object schemas reject undeclared properties.
+
+The prompt defines the four-class taxonomy, treats the document as untrusted data, requires short exact quotes only for present observations, and repeats the agreed guardrails for blank delivery/signature headings, referenced B/L numbers, commercial invoices, and positive evidence for `OTHER`. It explicitly prohibits model-generated probability, score, threshold, acceptance, fallback, or `UNCERTAIN` decisions.
+
+The implementation followed a red-green test cycle. Four new contract tests first failed because the module did not exist, then passed after the minimal implementation was added. No OpenAI SDK import, credential access, API client, or network-call path was introduced. The encoded schema and prompt are awaiting user review before any live call.
+
+## 16. Task 1 — guarded live experiment runner prepared
+
+The user approved the schema and prompt and selected `OPENAI_API_KEY` in the process environment for the standalone experiment. The user required the runner to be prepared with the agreed safeguards and requested an explicit stop with the exact command before the first live call.
+
+**Original prompt (translated from Ukrainian):**
+
+> I approve this schema and prompt for the first live API experiment. We use `OPENAI_API_KEY` through an environment variable for the standalone experiment. Prepare the experiment with these safeguards, but stop before the first live API call and tell me the exact command to run.
+
+The standalone module now includes the approved request configuration, strict response validation, evidence-substring checks, usage/cost accounting, one explicit retry per document, an eight-call global cap, and a $0.10 spend guardrail. An `incomplete` response caused by the 1,200-token output limit stops without retry or automatic limit changes. SDK automatic retries are disabled, and the request timeout is 60 seconds.
+
+Live execution requires `--run-live`, the presence of the `OPENAI_API_KEY` environment-variable name, and the absence of `OPENAI_LOG`. The key is not accepted through command arguments, read by experiment logic, printed, or persisted; the OpenAI SDK consumes it directly from the environment. Results contain parsed observations and operational metadata only. Raw document text, HTTP data, raw responses, exception messages, and credential values are not saved. Local results are ignored by Git.
+
+The bundled Python did not contain the OpenAI SDK. Nothing was installed automatically. The documented local setup uses an isolated `.venv` and pins the current official SDK release `openai==3.14.1`. The live command is separated from setup and requires the user to enter the key without shell-history exposure.
+
+The runner was developed through additional red-green cycles for configuration guards, structured-output validation, orchestration, retry limits, output-limit stopping, safe SDK-response normalization, and generic exception classification. No live API call was made.
+
+## 17. Task 1 — first live run and validation-boundary diagnosis
+
+The user ran the approved four-control experiment locally and supplied the terminal result.
+
+**Original prompt (terminal output):**
+
+> `Experiment finished: 0/4 completed, 8 calls, estimated spend $0.030717.`
+> `Sanitized local result: experiments/local-results/primary-confidence.json`
+
+The sanitized result showed that all eight Responses API calls completed: each of the four controls received its initial call and one retry. There were no technical failures, refusals, or output-limit incomplete responses. Every response was rejected afterward by the local JSON/evidence validation under the generic category `invalid_structured_output`.
+
+This does not yet show that model classification failed. The old runner discarded the exact validation subtype and parsed rejected observations, and `store: false` prevents retrieval of the old response bodies. The exact root cause therefore cannot be reconstructed from the first run. The leading hypothesis is a systematic mismatch in strict local evidence checks, such as a non-exact evidence quote or non-null evidence for an absent/unclear observation, but this remains unconfirmed.
+
+The diagnostic gap was corrected without weakening acceptance rules. Test-first changes add safe validation codes, affected observation IDs, and locally stored parsed rejected output while continuing to exclude source text, raw HTTP data, exception messages, and credentials. A single-control `--only-source` diagnostic mode was also added so the whole four-control run does not need to be repeated. The proposed `dhl_pod.pdf` diagnostic uses one call normally and no more than two with retry. No additional call was made because the approved eight-call cap was already exhausted.
+
+## 18. Task 1 — diagnostic run confirms presentation mismatch
+
+The user approved at most two additional calls and ran the single-control `dhl_pod.pdf` diagnostic. It used both calls and reported $0.0070725 estimated spend. Both API responses completed and selected `POD`, but local validation rejected them with `evidence_not_exact_substring` at `bol_shipment_structure`.
+
+The stored parsed outputs established the root cause: the model copied relevant source phrases but included literal outer quotation-mark characters in every evidence string. The source contained the inner phrases without those characters. Both responses pass the full local structural/evidence validation when only that outer presentation pair is removed.
+
+A test-first correction now performs this bounded normalization only when the original evidence is not a source substring and its inner text is an exact substring. Other non-exact evidence remains invalid. The prompt also explicitly tells the model not to add quotation-mark characters. The historical diagnostic outputs were revalidated locally; both now pass and retain the expected `POD` candidate.
+
+The diagnostic also identified a separate semantic error: both outputs marked `bol_shipment_structure` present based only on a waybill reference, contrary to the feature's guardrail. This error was not normalized away. It demonstrates that strict structure and exact quote provenance do not establish semantic correctness, and supports requiring a class-specific combination in later deterministic sufficiency rules. No new full-control run was performed.
+
+## 19. Task 1 — remaining-control rerun approved and bounded
+
+The user approved an additional run for only `BOL`, `INVOICE`, and `OTHER`: three calls normally and no more than six with retry. The validated POD control will not be repeated.
+
+**Original prompt (translated from Ukrainian):**
+
+> Yes.
+
+The runner now supports repeated `--only-source` arguments and cumulative prior-spend accounting. The already incurred $0.0377895 is passed explicitly. Before every call, the runner reserves the original conservative $0.0084 per-call planning bound and refuses to begin a call that could cross the cumulative $0.10 guardrail. This rerun has been prepared but not executed.
+
+## 20. Task 1 — remaining-control results and semantic evidence findings
+
+The user ran the approved `BOL`, `INVOICE`, and `OTHER` subset. Four calls cost an estimated $0.015702, bringing cumulative estimated spend to $0.0534915. INVOICE and OTHER completed local validation on their first calls with their expected candidates. Both BOL attempts selected the expected candidate but failed evidence validation because the transport-obligation quote replaced omitted source text with an ellipsis. One BOL quote also collapsed a PDF line break to a space.
+
+Combined with the earlier POD diagnostic, all four simple controls received the expected candidate class. This demonstrates initial structured-classification feasibility but does not establish accuracy or routing reliability on a representative set.
+
+Manual semantic review found recurring non-candidate false positives. In particular, `bol_shipment_structure` was present for all four classes based on generic shipment or route details. The transport invoice treated a delivery-date field as a completed delivery event, and the commercial invoice treated goods-valuation freight as a transport charge while also reporting multiple target purposes from its commercial-invoice identity. A simple total count of present features would therefore be misleading.
+
+The result leaves two technical decisions for explicit review rather than silent implementation: continuous source evidence may reasonably allow whitespace normalization introduced by PDF extraction while still rejecting ellipses, and deterministic routing may need to use candidate-class critical combinations while deriving ambiguity/contradiction from those combinations instead of trusting model-reported cross-class diagnostics directly. No further API call was made.
+
+## 21. Task 1 — deterministic sufficiency/routing experiment
+
+The user approved a local deterministic routing experiment based on critical feature combinations and explicitly deferred any final production score or threshold.
+
+**Original prompt (translated from Ukrainian):**
+
+> Yes, I approve this direction. Move to the deterministic sufficiency/routing experiment based on critical feature combinations. Do not yet fix the final threshold/score as a ready production solution—first test the behavior of these rules on our controls and show the result.
+
+Continuous evidence matching now allows PDF whitespace normalization while continuing to reject ellipses, paraphrases, and non-contiguous excerpts. Pure experiment rules define complete combinations for BOL, POD, INVOICE, and positive OTHER. Established complete BOL+POD evidence becomes uncertainty without fallback; incomplete or contradictory combinations escalate; model-supplied diagnostics remain advisory.
+
+On the latest stored responses, POD, INVOICE, and OTHER pass provenance and receive `ACCEPT`. BOL has the expected candidate and a complete BOL combination, but its obligation evidence contains an ellipsis and therefore receives `ESCALATE` for invalid evidence. In Iteration 1 that escalation would temporarily become semantic `UNCERTAIN`.
+
+Every control has a candidate match ratio of `1.0`, including the provenance-invalid BOL. The small simple set therefore cannot justify a numerical threshold or demonstrate score discrimination. The provenance gate and critical-combination rules provide useful behavior, while the final score, threshold, and routing quality remain deferred to systematic evaluation with incomplete, unclear, ambiguous, and contradictory examples.
+
+Test-first synthetic cases cover complete acceptance, incomplete escalation, established combined BOL/POD, target contradiction for OTHER, and advisory-only model diagnostics. No additional API call was made.
+
+## 22. Task 1 — minimal result contract and G1 review prepared
+
+The user asked to complete point 8 of Task 1 and prepare the G1 review with factual results and limitations, without new API calls, starting Task 2, or creating a commit.
+
+**Original prompt (translated from Ukrainian):**
+
+> Continue with Task 1 according to the plan. Complete item 8, then prepare item 9—the G1 review with actual results and limitations. Do not make any new API calls, do not start Task 2 yet, and do not create a commit without my separate permission.
+
+The proposed minimal logical result contract now separates model observations, provenance validation, backend-derived combinations, routing decisions, execution metadata, and technical failures. It requires that invalid provenance cannot be accepted, model diagnostics remain advisory, `OTHER` needs positive non-target evidence, a candidate class is not automatically final, and any future score is described as a routing signal rather than a probability. Exact Python types, persistence fields, score formula, and threshold remain deferred to G0 and Task 2E.
+
+The Task 2E hypotheses now focus on candidate behavior per class, incorrect acceptance versus useful or unnecessary escalation, provenance versus semantic correctness, positive `OTHER`, combined BOL/POD handling, and whether any score discriminates on incomplete, unclear, ambiguous, and contradictory examples. The four current controls all have a candidate match ratio of `1.0`, so they do not support a threshold choice.
+
+The prepared G1 recommendation is to accept the evidence-based architecture direction and minimal contract, without accepting production routing settings. Across 14 calls, the four simple controls all received the expected candidate class; the latest deterministic rules accept POD, INVOICE, and OTHER and escalate BOL because its required evidence contains an invalid ellipsis. Cumulative estimated spend was $0.0534915. The report records the small non-held-out set, semantic false positives, missing scanned/visual coverage, unresolved BOL provenance, lack of threshold discrimination, and prompt/validator revisions as explicit limitations.
+
+A narrow prompt correction now explicitly prohibits ellipses and joining non-contiguous passages in evidence. Its contract test first failed and then passed after the wording was added. It was deliberately not live-tested under this instruction, so the G1 report marks it as an unverified post-run correction. Experiment identifiers are proposed for freezing only after the user's G1 approval. No API call, Task 2 work, or commit was performed.
+
+## 23. Task 1 / G1 approved and closed
+
+The user approved G1 for the architecture direction, minimal evidence-based result contract, and proposed experiment identifiers. The user explicitly did not approve a production score, threshold, or demonstrated routing quality; those remain deferred to systematic evaluation in Task 2E. The user requested that Task 1 be marked complete without starting Task 2 or creating a commit.
+
+**Original prompt (translated from Ukrainian):**
+
+> I approve G1: the architecture direction, the minimal evidence-based result contract, and the proposed experiment identifiers. The production score/threshold and demonstrated routing quality are not approved and remain for systematic evaluation in Task 2E. Record G1 as approved and mark Task 1 complete. Do not start Task 2 yet, and do not create a commit without my separate permission.
+
+The G1 report now records the approval and its explicit boundary. The provider, endpoint, model, config, prompt, schema, and experimental routing-rules identifiers are frozen for the Task 1 artifact and exposed as constants in the standalone experiment modules; future sanitized summaries include the approved provider/endpoint/config/prompt/schema metadata. The implementation plan marks all Task 1 actions complete and leaves Task 2 untouched. No API call or commit was made.
+
+## 24. Task 1 commit approved
+
+The user explicitly approved committing the completed Task 1 changes.
+
+**Original prompt (translated from Ukrainian):**
+
+> Okay, let us commit the changes.
+
+The reviewed commit contains the standalone AI feasibility experiment, deterministic routing probe, local extraction utility, tests, G1 report, completed Task 1 plan status, ignore rules for local artifacts, and mirrored engineering history. Local PDFs, extracted document text, API result files, virtual environments, IDE files, bytecode, and secrets remain outside Git. The commit message is `Complete Task 1 AI feasibility experiment`.
