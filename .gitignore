@@ -6,6 +6,9 @@ venv/
 .idea/
 *.iml
 
+# Local Claude Code settings (per-machine, never shared)
+.claude/*.local.json
+
 # Python
 __pycache__/
 *.py[cod]
