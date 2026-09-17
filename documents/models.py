@@ -37,6 +37,9 @@ class ProcessingAttempt(models.Model):
     primary_observations = models.JSONField(null=True, blank=True)
     primary_metadata = models.JSONField(null=True, blank=True)
 
+    fallback_observations = models.JSONField(null=True, blank=True)
+    fallback_metadata = models.JSONField(null=True, blank=True)
+
     failure_stage = models.CharField(max_length=100, null=True, blank=True)
     failure_category = models.CharField(max_length=100, null=True, blank=True)
     failure_reason = models.TextField(null=True, blank=True)

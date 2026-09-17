@@ -156,6 +156,42 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(result["action"], "ESCALATE")
         self.assertEqual(result["reason"], "non_target_contradiction")
 
+    def test_insufficient_readable_content_forces_escalation_despite_complete_combination(self):
+        observations = make_observations(
+            "BOL",
+            present_features=(
+                "bol_identity",
+                "bol_transport_obligation",
+                "bol_shipment_structure",
+            ),
+            present_diagnostics=("insufficient_readable_content",),
+        )
+
+        result = evaluate_routing(observations)
+
+        self.assertEqual(result["action"], "ESCALATE")
+        self.assertEqual(result["reason"], "insufficient_readable_content")
+
+    def test_insufficient_readable_content_overrides_established_ambiguity_too(self):
+        observations = make_observations(
+            "BOL",
+            present_features=(
+                "bol_identity",
+                "bol_transport_obligation",
+                "bol_shipment_structure",
+                "pod_identity",
+                "completed_delivery_event",
+                "recipient_acknowledgement",
+            ),
+            present_diagnostics=("insufficient_readable_content",),
+        )
+
+        result = evaluate_routing(observations)
+
+        self.assertEqual(result["action"], "ESCALATE")
+        self.assertEqual(result["reason"], "insufficient_readable_content")
+        self.assertNotEqual(result["action"], "UNCERTAIN_NO_FALLBACK")
+
     def test_model_diagnostics_are_advisory_and_do_not_override_complete_combination(self):
         observations = make_observations(
             "POD",

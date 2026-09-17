@@ -9,18 +9,28 @@
   <h1>{{ attempt.original_name }}</h1>
   <p>Status: <strong>{{ attempt.get_status_display }}</strong></p>
 
+  {% if attempt.fallback_observations %}
+    <p>
+      The primary text/OCR classification was not accepted, so a visual fallback reviewed
+      the original PDF's page images once.
+      {% if attempt.status == "ACCEPTED" %}The accepted label below comes from that fallback.{% endif %}
+    </p>
+  {% endif %}
+
   {% if attempt.status == "ACCEPTED" %}
     <p>Accepted label: <strong>{{ attempt.get_accepted_label_display }}</strong></p>
     <p>
       Routing score: {{ attempt.routing_score }} (method: {{ attempt.score_method }}).
       This score is an evidence-completeness signal, not a probability of correctness.
+      {% if attempt.fallback_observations %}
+        Visual fallback evidence is a human-review description, not a machine-verified exact quote.
+      {% endif %}
     </p>
   {% elif attempt.status == "UNCERTAIN" %}
     <p>The document could not be classified with sufficient evidence.</p>
-    {% with reason=attempt.primary_metadata.routing.reason %}
+    {% with reason=attempt.fallback_metadata.routing.reason|default:attempt.primary_metadata.routing.reason %}
       {% if reason %}<p>Reason: {{ reason }}</p>{% endif %}
     {% endwith %}
-    <p>No visual fallback is available yet in this iteration; uncertain text-layer documents end here.</p>
   {% elif attempt.status == "FAILED" %}
     <p>Processing failed at stage <strong>{{ attempt.failure_stage }}</strong> ({{ attempt.failure_category }}).</p>
     <p>{{ attempt.failure_reason }}</p>

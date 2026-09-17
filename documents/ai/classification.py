@@ -1,15 +1,21 @@
-"""Primary text classification: OpenAI call and strict response validation.
+"""Primary text and visual-fallback classification: OpenAI calls and strict
+response validation.
 
 Reuses the routing contract frozen at Task 2E/GE and reviewed in
-docs/experiments/primary-confidence.md: model, prompt/schema version, and
-evidence-provenance rules are not re-derived here.
+docs/experiments/primary-confidence.md (text) and Task 5/G2 reviewed in
+docs/experiments/scanned-fallback.md (visual): model, prompt/schema version,
+and evidence rules are not re-derived here.
 """
 
 import json
 import re
 import time
+from base64 import b64encode
 from copy import deepcopy
+from io import BytesIO
 from pathlib import Path
+
+from PIL import Image
 
 
 PROVIDER_ID = "openai"
@@ -18,7 +24,10 @@ MODEL = "gpt-5.4-mini-2026-03-17"
 CONFIG_ID = "primary-text-evaluation-v2"
 PROMPT_ID = "primary-classification-evidence-v2"
 SCHEMA_ID = "primary-classification-evidence-v2"
-MAX_OUTPUT_TOKENS = 1_200
+MAX_OUTPUT_TOKENS = 2_000  # raised from 1,200: "medium" reasoning effort uses
+# more reasoning tokens (observed 770 on one call) than the "low" effort this
+# limit was originally sized for, and reasoning tokens count against this
+# budget too.
 MAX_RETRIES_PER_DOCUMENT = 1
 REQUEST_TIMEOUT_SECONDS = 60.0
 
@@ -193,10 +202,170 @@ def build_request_parameters(document_text: str) -> dict:
         "instructions": CLASSIFICATION_INSTRUCTIONS,
         "input": build_document_input(document_text),
         "text": {"format": TEXT_FORMAT},
-        "reasoning": {"effort": "low"},
+        "reasoning": {"effort": "medium"},
         "store": False,
         "max_output_tokens": MAX_OUTPUT_TOKENS,
     }
+
+
+# --- Visual fallback (Task 5/G2, docs/experiments/scanned-fallback.md) ---
+#
+# Reuses the exact same feature/diagnostic IDs and descriptions as the
+# primary text contract: the class definitions do not change with input
+# modality, and a vision-capable model can still read printed text in the
+# image, so a reduced feature set would only lose signal. Evidence here is a
+# free-text human-review description, not a machine-checkable exact quote,
+# since there is no source string to verify an image excerpt against.
+
+VISUAL_PROMPT_ID = "visual-classification-evidence-v1"
+VISUAL_SCHEMA_ID = "visual-classification-evidence-v1"
+VISUAL_CONFIG_ID = "visual-fallback-v1"
+
+VISUAL_CLASSIFICATION_INSTRUCTIONS = (
+    Path(__file__).parent / "prompts" / "visual.txt"
+).read_text(encoding="utf-8")
+
+
+def _visual_observation_schema(description: str) -> dict:
+    return {
+        "type": "object",
+        "description": description,
+        "properties": {
+            "status": {"type": "string", "enum": ["present", "absent", "unclear"]},
+            "evidence": {
+                "type": ["string", "null"],
+                "description": (
+                    "A short free-text description of what was seen and roughly where "
+                    "on the page, when status is present (e.g. 'heading at top reads "
+                    "BILL OF LADING'); null when absent or unclear. This is a human-"
+                    "review note, not a machine-verifiable exact quote."
+                ),
+            },
+        },
+        "required": ["status", "evidence"],
+        "additionalProperties": False,
+    }
+
+
+def _visual_observation_properties(descriptions: dict[str, str]) -> dict:
+    return {
+        observation_id: deepcopy(_visual_observation_schema(description))
+        for observation_id, description in descriptions.items()
+    }
+
+
+VISUAL_TEXT_FORMAT = {
+    "type": "json_schema",
+    "name": "visual_classification_evidence",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "candidate_class": {
+                "type": "string",
+                "enum": ["INVOICE", "BOL", "POD", "OTHER"],
+                "description": (
+                    "The closest candidate class based on the document's primary purpose; "
+                    "this is not an acceptance decision."
+                ),
+            },
+            "features": {
+                "type": "object",
+                "properties": _visual_observation_properties(FEATURE_DESCRIPTIONS),
+                "required": list(FEATURE_IDS),
+                "additionalProperties": False,
+            },
+            "diagnostics": {
+                "type": "object",
+                "properties": _visual_observation_properties(DIAGNOSTIC_DESCRIPTIONS),
+                "required": list(DIAGNOSTIC_IDS),
+                "additionalProperties": False,
+            },
+        },
+        "required": ["candidate_class", "features", "diagnostics"],
+        "additionalProperties": False,
+    },
+}
+
+
+def _image_to_base64_png(image: Image.Image) -> str:
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return b64encode(buffer.getvalue()).decode("ascii")
+
+
+def build_visual_request_parameters(images: list[Image.Image]) -> dict:
+    content = [
+        {
+            "type": "input_text",
+            "text": (
+                "Analyze the attached untrusted page images using the fixed taxonomy "
+                "and structured-output contract. The images are the pages of one "
+                "document, in reading order."
+            ),
+        }
+    ]
+    for image in images:
+        content.append(
+            {
+                "type": "input_image",
+                "image_url": f"data:image/png;base64,{_image_to_base64_png(image)}",
+                "detail": "high",
+            }
+        )
+    return {
+        "model": MODEL,
+        "instructions": VISUAL_CLASSIFICATION_INSTRUCTIONS,
+        "input": [{"role": "user", "content": content}],
+        "text": {"format": VISUAL_TEXT_FORMAT},
+        "reasoning": {"effort": "medium"},
+        "store": False,
+        "max_output_tokens": MAX_OUTPUT_TOKENS,
+    }
+
+
+class VisualOutputValidationError(ValueError):
+    def __init__(self, code: str, observation_id: str | None = None):
+        messages = {
+            "unexpected_root_fields": "Model output has unexpected root fields.",
+            "invalid_candidate_class": "Model output has an invalid candidate class.",
+            "unexpected_observation_fields": "Model output has unexpected observation fields.",
+            "unexpected_observation_shape": "Observation has unexpected fields.",
+            "invalid_status": "Observation has an invalid status.",
+            "missing_present_evidence": "Present observation requires a description.",
+            "non_null_inactive_evidence": "Evidence must be null for absent or unclear.",
+        }
+        super().__init__(messages[code])
+        self.code = code
+        self.observation_id = observation_id
+
+
+def validate_visual_output(payload: dict) -> None:
+    expected_root = {"candidate_class", "features", "diagnostics"}
+    if set(payload) != expected_root:
+        raise VisualOutputValidationError("unexpected_root_fields")
+    if payload["candidate_class"] not in {"INVOICE", "BOL", "POD", "OTHER"}:
+        raise VisualOutputValidationError("invalid_candidate_class")
+
+    groups = (
+        (payload["features"], FEATURE_IDS),
+        (payload["diagnostics"], DIAGNOSTIC_IDS),
+    )
+    for observations, expected_ids in groups:
+        if set(observations) != set(expected_ids):
+            raise VisualOutputValidationError("unexpected_observation_fields")
+        for observation_id, observation in observations.items():
+            if set(observation) != {"status", "evidence"}:
+                raise VisualOutputValidationError("unexpected_observation_shape", observation_id)
+            status = observation["status"]
+            evidence = observation["evidence"]
+            if status not in {"present", "absent", "unclear"}:
+                raise VisualOutputValidationError("invalid_status", observation_id)
+            if status == "present":
+                if not isinstance(evidence, str) or not evidence.strip():
+                    raise VisualOutputValidationError("missing_present_evidence", observation_id)
+            elif evidence is not None:
+                raise VisualOutputValidationError("non_null_inactive_evidence", observation_id)
 
 
 class ModelOutputValidationError(ValueError):
@@ -401,16 +570,14 @@ def _attempt_metadata(attempt: int, response: dict) -> dict:
     }
 
 
-def classify_document_text(document_text: str, request) -> dict:
-    """Classify one document's already-extracted text.
+def _run_classification_call(parameters: dict, request, validate_and_normalize) -> dict:
+    """Shared retry/error-handling loop for one structured classification call.
 
-    `request` is an injected `parameters -> response dict` boundary (see
-    `request_openai`), so tests can fake the OpenAI call without a real SDK
-    client. Returns {"observations": <validated payload>, "metadata": {...}}
-    on success. Raises ClassificationFailure for any technical or invalid-
-    output outcome, after at most one retry, per the GE-approved policy.
-    Never returns or raises a semantic OTHER/UNCERTAIN result: that decision
-    belongs to documents.services.routing.
+    `validate_and_normalize(payload) -> normalized_payload` raises
+    ModelOutputValidationError or VisualOutputValidationError (both expose
+    `.code` and `.observation_id`) for an invalid payload. Returns
+    {"observations": normalized_payload, "attempts": [...]} on success.
+    Raises ClassificationFailure after exhausting the one-retry policy.
     """
     attempts_metadata: list[dict] = []
 
@@ -418,7 +585,7 @@ def classify_document_text(document_text: str, request) -> dict:
         can_retry = attempt <= MAX_RETRIES_PER_DOCUMENT
 
         try:
-            response = request(build_request_parameters(document_text))
+            response = request(parameters)
         except (RetryableRequestFailure, NonRetryableRequestFailure) as error:
             attempts_metadata.append({"attempt": attempt, "error_category": error.category})
             if isinstance(error, RetryableRequestFailure) and can_retry:
@@ -457,10 +624,9 @@ def classify_document_text(document_text: str, request) -> dict:
                 continue
             raise ClassificationFailure("invalid_structured_output", attempts_metadata)
 
-        payload = normalize_evidence_quotes(payload, document_text)
         try:
-            validate_model_output(payload, document_text)
-        except ModelOutputValidationError as error:
+            normalized_payload = validate_and_normalize(payload)
+        except (ModelOutputValidationError, VisualOutputValidationError) as error:
             attempt_metadata["error_category"] = "invalid_structured_output"
             attempt_metadata["validation_error_code"] = error.code
             if error.observation_id is not None:
@@ -471,17 +637,70 @@ def classify_document_text(document_text: str, request) -> dict:
             raise ClassificationFailure("invalid_structured_output", attempts_metadata)
 
         attempts_metadata.append(attempt_metadata)
-        return {
-            "observations": payload,
-            "metadata": {
-                "provider": PROVIDER_ID,
-                "endpoint": ENDPOINT_ID,
-                "model": MODEL,
-                "config_id": CONFIG_ID,
-                "prompt_id": PROMPT_ID,
-                "schema_id": SCHEMA_ID,
-                "attempts": attempts_metadata,
-            },
-        }
+        return {"observations": normalized_payload, "attempts": attempts_metadata}
 
-    raise AssertionError("classify_document_text must return or raise within its retry loop")
+    raise AssertionError("classification call must return or raise within its retry loop")
+
+
+def classify_document_text(document_text: str, request) -> dict:
+    """Classify one document's already-extracted text.
+
+    `request` is an injected `parameters -> response dict` boundary (see
+    `request_openai`), so tests can fake the OpenAI call without a real SDK
+    client. Returns {"observations": <validated payload>, "metadata": {...}}
+    on success. Raises ClassificationFailure for any technical or invalid-
+    output outcome, after at most one retry, per the GE-approved policy.
+    Never returns or raises a semantic OTHER/UNCERTAIN result: that decision
+    belongs to documents.services.routing.
+    """
+
+    def validate_and_normalize(payload: dict) -> dict:
+        normalized = normalize_evidence_quotes(payload, document_text)
+        validate_model_output(normalized, document_text)
+        return normalized
+
+    result = _run_classification_call(
+        build_request_parameters(document_text), request, validate_and_normalize
+    )
+    return {
+        "observations": result["observations"],
+        "metadata": {
+            "provider": PROVIDER_ID,
+            "endpoint": ENDPOINT_ID,
+            "model": MODEL,
+            "config_id": CONFIG_ID,
+            "prompt_id": PROMPT_ID,
+            "schema_id": SCHEMA_ID,
+            "attempts": result["attempts"],
+        },
+    }
+
+
+def classify_document_images(images: list[Image.Image], request) -> dict:
+    """Visual fallback: classify one document from rendered page images.
+
+    Same injected `request` boundary and one-retry technical-failure policy
+    as `classify_document_text` (Task 5/G2 agreed bounds). Evidence is not
+    exact-quote validated (see `validate_visual_output`): there is no source
+    string to check an image excerpt against.
+    """
+
+    def validate_and_normalize(payload: dict) -> dict:
+        validate_visual_output(payload)
+        return payload
+
+    result = _run_classification_call(
+        build_visual_request_parameters(images), request, validate_and_normalize
+    )
+    return {
+        "observations": result["observations"],
+        "metadata": {
+            "provider": PROVIDER_ID,
+            "endpoint": ENDPOINT_ID,
+            "model": MODEL,
+            "config_id": VISUAL_CONFIG_ID,
+            "prompt_id": VISUAL_PROMPT_ID,
+            "schema_id": VISUAL_SCHEMA_ID,
+            "attempts": result["attempts"],
+        },
+    }

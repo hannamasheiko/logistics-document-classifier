@@ -1,9 +1,18 @@
-"""Deterministic acceptance/ambiguity/escalation routing for primary classification.
+"""Deterministic acceptance/ambiguity/escalation routing for primary and
+visual-fallback classification.
 
 Frozen at Task 2E/GE (docs/experiments/primary-confidence.md): critical
 feature combinations, rule order, score method, and acceptance threshold are
 not re-derived here. Model-reported cross-class diagnostics are advisory only
-and never override these backend-derived combinations.
+and never override these backend-derived combinations, with one exception
+added at Task 5/G2 (docs/experiments/scanned-fallback.md):
+`insufficient_readable_content` is promoted to a deterministic override,
+checked before every other rule, because a response that flags its own
+input as unreadable cannot be trusted to also report a correct combination.
+This was empirically necessary for OCR-sourced text (a garbled-text response
+still assembled a spurious complete combination) and applied uniformly here
+rather than only for OCR/visual calls, since real native text triggering
+this diagnostic would be an equally valid reason to distrust the response.
 """
 
 ROUTING_RULES_ID = "critical-combinations-primary-v1"
@@ -55,6 +64,21 @@ def evaluate_routing(observations: dict) -> dict:
     `candidate_class` that is only meaningful when `action == "ACCEPT"`.
     """
     candidate_class = observations["candidate_class"]
+
+    if observations["diagnostics"]["insufficient_readable_content"]["status"] == "present":
+        return {
+            "candidate_class": candidate_class,
+            "routing_score": None,
+            "score_method": SCORE_METHOD_ID,
+            "acceptance_threshold": ACCEPTANCE_THRESHOLD,
+            "routing_rules_id": ROUTING_RULES_ID,
+            "class_match_ratios": None,
+            "complete_classes": None,
+            "advisory_model_diagnostics": None,
+            "action": "ESCALATE",
+            "reason": "insufficient_readable_content",
+        }
+
     match_ratios = {
         class_name: _match_ratio(observations, class_name)
         for class_name in CRITICAL_FEATURES
