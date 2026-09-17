@@ -219,35 +219,53 @@ Processing розрізняє initial rejection і technical failure після 
 
 ## Task 4: Working vertical slice через UI/history
 
+**Status:** complete. Implementation committed in `245718a`.
+
 **Files:** create `documents/{views,urls}.py`, `templates/documents/{upload,result,history}.html`, `tests/test_views.py`; modify `config/urls.py`, `README.md`.
 
 **Consumes:** Tasks 1–3. **Produces:** upload POST → result redirect, history/result GET, original PDF access.
 
-- [ ] Написати Django client tests: valid upload створює attempt і переводить на result; invalid input не створює запис; history показує кілька attempts одного PDF; non-accepted result не показується як accepted.
-- [ ] Запустити tests до реалізації views/templates, перевірити очікувані failures.
-- [ ] Реалізувати прості Django templates/forms без нового frontend framework; результат показує score method/limitations, original link та reason для UNCERTAIN/failure.
-- [ ] Original PDF видавати за record reference, не довільним user-supplied filesystem path; tests перевіряють unknown record та нормальне відкриття збереженого файла. Без accounts — shared demo history, не приватний user cabinet.
-- [ ] Запустити `python manage.py test documents.tests.test_views`, потім браузером пройти upload → result → history → original для реального text document та uncertainty/error example.
-- [ ] Подати користувачу фактичні stage results і limitations. Не комітити без окремого дозволу.
+- [x] Написати Django client tests: valid upload створює attempt і переводить на result; invalid input не створює запис; history показує кілька attempts одного PDF; non-accepted result не показується як accepted.
+- [x] Запустити tests до реалізації views/templates, перевірити очікувані failures.
+- [x] Реалізувати прості Django templates/forms без нового frontend framework; результат показує score method/limitations, original link та reason для UNCERTAIN/failure.
+- [x] Original PDF видавати за record reference, не довільним user-supplied filesystem path; tests перевіряють unknown record та нормальне відкриття збереженого файла. Без accounts — shared demo history, не приватний user cabinet.
+- [x] Запустити `python manage.py test documents.tests.test_views`, потім браузером пройти upload → result → history → original для реального text document та uncertainty/error example.
+- [x] Подати користувачу фактичні stage results і limitations. Не комітити без окремого дозволу.
 
 **Milestone 1:** reviewer може пройти text-only flow end-to-end. Відсутність fallback явно зазначена як проміжний стан. Перевірити core перед додаванням сканів.
 
+### Task 4 verification record
+
+- `python manage.py check`, `makemigrations --check --dry-run`, `python manage.py test documents.tests` → 33/33 passed (додано 8 view-тестів, з fake OpenAI boundary через `unittest.mock.patch`).
+- Живий end-to-end прогін на реальному сервері (DEBUG=False перевірено окремо): реальний upload `dhl_pod.pdf` → Accepted/Proof of delivery/score 1.0; history показує запис; `/attempts/1/original/` — 200, `application/pdf`, побайтово ідентичний файл. Приклад помилки: PDF без текстового шару → Failed/`text_extraction`/`no_extractable_text`, без Accepted label.
+- Під час роботи виправлено реальний баг: `documents/services/processing.py` створював OpenAI-клієнта еагерно на початку `run_classification`, ще до спроби text extraction.
+
 ## Task 5: OCR/rendering та visual fallback experiment (G2)
+
+**Status:** complete; G2 approved. Feasibility experiment only, not integrated with `documents/`. Implementation committed in `2905ff9`.
 
 **Files:** create `experiments/scanned_fallback.py`, `docs/experiments/scanned-fallback.md`; extend evaluation fixtures/manifest.
 
 **Consumes:** working Milestone 1, G1 primary. **Produces:** погоджений OCR/render pipeline, visual model та власні fallback checks.
 
-- [ ] Додати scanned examples, paired text/scan де можливо, unclear/poor scan і combined example. Позначити synthetic scans окремо.
-- [ ] Обрати один поширений локальний OCR/render stack за quality, license та простотою setup і виконати smoke test на погоджених scanned examples. Альтернативний stack розглядати лише за конкретного blocker у вибраному варіанті; не проводити обов'язкове порівняння candidates і не вводити окремий OCR service.
-- [ ] Запропонувати text-sufficiency/page policy: як відрізняємо image-only від зіпсованого text layer, що робимо зі змішаними сторінками та частково прочитаним PDF. Не пропускати мовчки непрочитані сторінки; погодити підтримку або явний unsupported outcome.
-- [ ] Перевірити rendering усіх дозволених сторінок: image dimensions/quality, temporary cleanup та ресурсні межі; вибір render resolution не замінює 10-page limit.
-- [ ] Прогнати OCR → погоджений primary, а для escalation — visual model із зображеннями того самого original PDF. Перевірити цей самий fallback на text-layer PDF.
-- [ ] Перевірити structured visual evidence та власні deterministic fallback score/acceptance checks на labeled examples; не копіювати primary threshold і не приймати відповідь visual model автоматично. Відокремити виправлені помилки, нові помилки та unresolved cases.
-- [ ] Погодити загальні time bounds і bounded technical retries з урахуванням SDK defaults; один classification fallback не означає дозволу на нескінченні HTTP retries.
-- [ ] Подати G2 із recommendation, sanitized evidence, latency/cost та limitations; отримати погодження перед production інтеграцією. Якщо на доступних examples немає реального primary failure, не видавати штучно піднятий threshold за доведену корисність fallback.
+- [x] Додати scanned examples, paired text/scan де можливо, unclear/poor scan і combined example. Позначити synthetic scans окремо.
+- [x] Обрати один поширений локальний OCR/render stack за quality, license та простотою setup і виконати smoke test на погоджених scanned examples. Альтернативний stack розглядати лише за конкретного blocker у вибраному варіанті; не проводити обов'язкове порівняння candidates і не вводити окремий OCR service.
+- [x] Запропонувати text-sufficiency/page policy: як відрізняємо image-only від зіпсованого text layer, що робимо зі змішаними сторінками та частково прочитаним PDF. Не пропускати мовчки непрочитані сторінки; погодити підтримку або явний unsupported outcome.
+- [x] Перевірити rendering усіх дозволених сторінок: image dimensions/quality, temporary cleanup та ресурсні межі; вибір render resolution не замінює 10-page limit.
+- [x] Прогнати OCR → погоджений primary, а для escalation — visual model із зображеннями того самого original PDF. Перевірити цей самий fallback на text-layer PDF.
+- [x] Перевірити structured visual evidence та власні deterministic fallback score/acceptance checks на labeled examples; не копіювати primary threshold і не приймати відповідь visual model автоматично. Відокремити виправлені помилки, нові помилки та unresolved cases.
+- [x] Погодити загальні time bounds і bounded technical retries з урахуванням SDK defaults; один classification fallback не означає дозволу на нескінченні HTTP retries.
+- [x] Подати G2 із recommendation, sanitized evidence, latency/cost та limitations; отримати погодження перед production інтеграцією. Якщо на доступних examples немає реального primary failure, не видавати штучно піднятий threshold за доведену корисність fallback.
 
 **Exit:** OCR та visual path перевірені на прикладах, а policies для unreadable/partial content не приховані в коді.
+
+### Task 5 verification record
+
+- Деталі, живі результати, вартість ($0.05155 / 15 викликів) та обмеження — у [docs/experiments/scanned-fallback.md](../../experiments/scanned-fallback.md).
+- OCR-джерело → вже заморожений primary contract: 8/8 completed, включно з новим deterministic override для `insufficient_readable_content`.
+- Visual fallback (та сама модель, зображення): успішно прочитав документ, на якому локальний OCR провалився (головна цінність fallback); чесно позначив `unclear`/`insufficient_readable_content` на навмисно нечитабельному навіть для людини прикладі.
+- Ліміт 10 сторінок/10 МБ (Task 2/G0) свідомо залишено без змін — окремо обговорено й погоджено з користувачем.
+- Task 6 (production інтеграція) не починається автоматично від цього G2 — потребує окремого дозволу користувача.
 
 ## Task 6: Planned complete classification pipeline
 
