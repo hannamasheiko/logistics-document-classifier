@@ -26,8 +26,8 @@
 - Одна PostgreSQL DB, local media, мінімальний UI/history; без accounts/authentication, queues/workers, external object storage, deduplication/cache або додаткових класів.
 - Кожне прийняте завантаження — нова attempt. Попередні записи не перезаписуються. Initial rejection не створює attempt; subsequent failure зберігається з PDF.
 - Не читати, не друкувати, не включати у файли/коміти секретні значення. Конфігураційні приклади містять лише назви змінних і порожні/явно несправжні значення; API runtime отримує секрет без його виведення агентом.
-- Не робити коміти автоматично. Перед кожним запропонованим комітом: підсумок stage, фактичні checks/results, proposed message; після дозволу — актуальна engineering history в тому самому коміті.
-- `AI_WORKFLOW.md` і `AI_WORKFLOW_UA.md` — дзеркальна історія; не замінюють spec або plan. Під час execution фіксувати meaningful stages, оригінальні українські prompts та точні англійські переклади, без raw transcript.
+- Не робити коміти автоматично. Перед кожним запропонованим комітом: підсумок stage, фактичні checks/results і proposed message.
+- `AI_WORKFLOW.md` і `AI_WORKFLOW_UA.md` зберігаються лише як historical snapshots Brainstorming, Planning і Task 1. Не оновлювати, не синхронізувати, не перекладати й не читати їх як prerequisite для наступних tasks.
 
 ## 1. Як виконувати план і приймати deferred decisions
 
@@ -216,7 +216,7 @@ Processing розрізняє initial rejection і technical failure після 
 - [ ] Реалізувати прості Django templates/forms без нового frontend framework; результат показує score method/limitations, original link та reason для UNCERTAIN/failure.
 - [ ] Original PDF видавати за record reference, не довільним user-supplied filesystem path; tests перевіряють unknown record та нормальне відкриття збереженого файла. Без accounts — shared demo history, не приватний user cabinet.
 - [ ] Запустити `python manage.py test documents.tests.test_views`, потім браузером пройти upload → result → history → original для реального text document та uncertainty/error example.
-- [ ] Записати stage results і limitations у mirrored AI_WORKFLOW. Не комітити без окремого дозволу.
+- [ ] Подати користувачу фактичні stage results і limitations. Не комітити без окремого дозволу.
 
 **Milestone 1:** reviewer може пройти text-only flow end-to-end. Відсутність fallback явно зазначена як проміжний стан. Перевірити core перед додаванням сканів.
 
@@ -251,7 +251,7 @@ Processing розрізняє initial rejection і technical failure після 
 - [ ] Реалізувати погоджені timeout/retry/resource/temporary cleanup bounds; перевірити failure не залишає attempt помилково ACCEPTED.
 - [ ] Запустити `python manage.py test documents.tests`; окремо real-parser/OCR tests на PDF fixtures та погоджений live evaluation для обох input types.
 - [ ] Браузером перевірити scanned upload, text-layer escalation, established ambiguity і technical failure; перевірити history/original після кожного.
-- [ ] Зафіксувати Milestone 2 verification у mirrored engineering history; коміт лише за окремим дозволом.
+- [ ] Подати користувачу фактичні результати verification для Milestone 2; коміт лише за окремим дозволом.
 
 **Milestone 2:** повний погоджений classification flow працює й перевірений; extraction — наступна planned capability, не випадковий бонус.
 
@@ -284,13 +284,13 @@ Processing розрізняє initial rejection і technical failure після 
 - [ ] Додати migration/persistence representation та result UI; score label чесно пояснює метод, не обіцяє 100% correctness.
 - [ ] Перевірити restart/reopen result: поля, confidence та original PDF доступні з history.
 - [ ] Запустити `python manage.py migrate`, `python manage.py test documents.tests`; виконати кілька погоджених G3 expected examples і core regression evaluation. Окремо звітувати про extraction errors і будь-які зміни classification/routing; окремий tuning/held-out extraction run не потрібний.
-- [ ] Переконатися, що G3 extraction failure behavior не переписує core classification всупереч погодженому правилу; зафіксувати результати stage в history.
+- [ ] Переконатися, що G3 extraction failure behavior не переписує core classification всупереч погодженому правилу; подати користувачу фактичні результати stage.
 
 **Milestone 3:** вузький planned extraction integrated; value/status/evidence, validators, explainable score та failure isolation перевірені на expected examples, mandatory core не регресував.
 
 ## Task 9: Delivery evaluation, reviewer quickstart та review gate
 
-**Files:** `documents/management/commands/evaluate_documents.py`, `evaluation/results/`, `README.md`, mirrored AI_WORKFLOW; fix only files with конкретними findings.
+**Files:** `documents/management/commands/evaluate_documents.py`, `evaluation/results/`, `README.md`; fix only files with конкретними findings.
 
 **Consumes:** Milestones 1–3 та погоджені evaluation criteria. **Produces:** reviewable planned delivery з actual results/limitations, без автоматичного publish/commit.
 
@@ -312,7 +312,7 @@ python manage.py evaluate_documents --manifest evaluation/manifest.json --output
 - [ ] Браузером пройти три короткі сценарії: один text-layer upload; один scanned document із visual fallback; повторне відкриття result/history з original PDF та extracted fields. Uncertainty, technical failure, duplicate upload і invalid limits покрити automated tests, не дублювати повною ручною browser matrix.
 - [ ] Записати фактичні результати, unresolved limitations і correction iterations. Якщо змінився prompt/threshold, повторити релевантну evaluation та позначити її новою версією; не приховувати попередні failures.
 - [ ] Надати G4 review: що виконано, що перевірено, що не вдалося перевірити, deviations від spec. При scope problem обговорити contingency, а не оголосити часткову реалізацію повною.
-- [ ] Перед будь-яким комітом підготувати зміни history обома мовами, summary/tests/results і proposed commit message; чекати explicit commit approval. Push/public repository creation — лише в окремо авторизованому кроці.
+- [ ] Перед будь-яким комітом підготувати summary/tests/results і proposed commit message; чекати explicit commit approval. Push/public repository creation — лише в окремо авторизованому кроці.
 
 **Exit:** користувач отримав concrete delivery review. Наявність плану або зелених mocks не означає, що всі criteria виконані.
 
@@ -338,5 +338,3 @@ python manage.py evaluate_documents --manifest evaluation/manifest.json --output
 ## 5. Self-review та handoff
 
 План перевірити проти spec за матрицею вище: усі mandatory capabilities мають task, classification/fallback experiments завершуються concrete decision gates, technical failures не перетворюються на OTHER/UNCERTAIN, extraction не стала stretch goal або другою широкою AI-дослідницькою системою. Поведінкові сценарії задають потрібні перевірки; конкретні test assertions і Python interfaces визначаються після відповідних gates, а не наперед. Після G1/G0/GE/G2 уточнюються залежні classification contracts; G3 фіксує вузький extraction contract перед реалізацією.
-
-**Поточний stop point:** користувач переглядає цей implementation plan. Ніяких scaffold, dependencies, experiments, API calls, application code, tests або commits на кроці створення плану не виконувати. Погодження плану й подальший дозвіл виконувати роботу не означають дозволу на коміти.

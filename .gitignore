@@ -33,3 +33,6 @@ experiments/local-control-text/
 
 # Local live-experiment results (may contain source evidence excerpts)
 experiments/local-results/
+
+# Local raw Codex session archive
+.ai-history/
