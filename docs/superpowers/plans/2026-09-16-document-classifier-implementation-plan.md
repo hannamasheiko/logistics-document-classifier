@@ -269,21 +269,31 @@ Processing розрізняє initial rejection і technical failure після 
 
 ## Task 6: Planned complete classification pipeline
 
+**Status:** complete. Implementation committed in `25b7bb9`.
+
 **Files:** create `documents/services/ocr.py`, `documents/ai/prompts/visual.txt`; modify `documents/services/{pdf,routing,processing}.py`, `documents/ai/classification.py`, settings/dependencies/README; extend `documents/tests/{test_pipeline,test_routing,test_views}.py`.
 
 **Consumes:** G2. **Produces:** rendering сторінок, OCR, visual classification та fallback routing у повному processing flow; конкретні contracts/types/signatures визначаються після G2.
 
-- [ ] Додати integration tests із fake model boundary: accepted primary та established ambiguity не викликають visual model; classification uncertainty викликає її один раз зі зображеннями original PDF; semantic uncertainty або technical fallback failure не мають final accepted label; при fallback failure зберігається primary result для діагностики.
+- [x] Додати integration tests із fake model boundary: accepted primary та established ambiguity не викликають visual model; classification uncertainty викликає її один раз зі зображеннями original PDF; semantic uncertainty або technical fallback failure не мають final accepted label; при fallback failure зберігається primary result для діагностики.
 
-- [ ] Реалізувати G2 page/text/OCR policy. Не трактувати OCR service failure як semantic uncertainty або OTHER.
-- [ ] Реалізувати один visual escalation; fallback routing може лише прийняти classification або завершити з `UNCERTAIN`. Technical exception перехоплює lifecycle і зберігає failure stage/reason.
-- [ ] Зберігати primary/fallback model information та прийнятий final result; не обирати просто найбільший score двох різних scoring methods.
-- [ ] Реалізувати погоджені timeout/retry/resource/temporary cleanup bounds; перевірити failure не залишає attempt помилково ACCEPTED.
-- [ ] Запустити `python manage.py test documents.tests`; окремо real-parser/OCR tests на PDF fixtures та погоджений live evaluation для обох input types.
-- [ ] Браузером перевірити scanned upload, text-layer escalation, established ambiguity і technical failure; перевірити history/original після кожного.
-- [ ] Подати користувачу фактичні результати verification для Milestone 2; коміт лише за окремим дозволом.
+- [x] Реалізувати G2 page/text/OCR policy. Не трактувати OCR service failure як semantic uncertainty або OTHER.
+- [x] Реалізувати один visual escalation; fallback routing може лише прийняти classification або завершити з `UNCERTAIN`. Technical exception перехоплює lifecycle і зберігає failure stage/reason.
+- [x] Зберігати primary/fallback model information та прийнятий final result; не обирати просто найбільший score двох різних scoring methods.
+- [x] Реалізувати погоджені timeout/retry/resource/temporary cleanup bounds; перевірити failure не залишає attempt помилково ACCEPTED.
+- [x] Запустити `python manage.py test documents.tests`; окремо real-parser/OCR tests на PDF fixtures та погоджений live evaluation для обох input types.
+- [x] Браузером перевірити scanned upload, text-layer escalation, established ambiguity і technical failure; перевірити history/original після кожного.
+- [x] Подати користувачу фактичні результати verification для Milestone 2; коміт лише за окремим дозволом.
 
 **Milestone 2:** повний погоджений classification flow працює й перевірений; extraction — наступна planned capability, не випадковий бонус.
+
+### Task 6 verification record
+
+- `python manage.py test documents.tests` → 46/46 passed; `manage.py check` та `makemigrations --check --dry-run` чисто.
+- Нова міграція: `fallback_observations`/`fallback_metadata` поля на `ProcessingAttempt`.
+- Живий browser walkthrough (реальні виклики OpenAI): сканований PDF з провалом OCR → visual fallback правильно прочитав і прийняв (BOL); text-layer з неповними доказами → fallback чесно підтвердив UNCERTAIN; established BOL/POD ambiguity → UNCERTAIN без виклику fallback (перевірено в БД). Technical failure — покрито automated tests з fake boundary.
+- Під час живої перевірки виявлено і виправлено дві реальні проблеми постачальника: `reasoning.effort="low"` для замороженого `gpt-5.4-mini-2026-03-17` почав повертати 404 (перемкнули на `medium` після підтверджувального прогону); `medium` витрачає більше reasoning-токенів, тому підняли `max_output_tokens` з 1200 до 2000.
+- Деталі — у [AI_WORKFLOW_UA.md](../../../AI_WORKFLOW_UA.md#task-6--продакшн-інтеграція-ocr-та-visual-fallback).
 
 ## Task 7: Extraction contract and validation checkpoint (G3)
 
