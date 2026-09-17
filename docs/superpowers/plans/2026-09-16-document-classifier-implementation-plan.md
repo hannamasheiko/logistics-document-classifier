@@ -156,25 +156,29 @@ Processing розрізняє initial rejection і technical failure після 
 
 ## Task 2: Foundation decisions та перевірюваний intake/persistence
 
+**Status:** complete; G0 approved. Implementation committed in `ba213c9`.
+
 **Files:** create `requirements.txt`, `compose.yaml`, `.env.example`, `manage.py`, `config/`, `documents/{apps,models,forms}.py`, `documents/services/pdf.py`, `documents/migrations/`; modify `.gitignore`, `README.md`; test `documents/tests/test_intake.py`.
 
 **Consumes:** spec, результати й мінімальний result contract із Task 1/G1; погодження foundation у G0. Task 2 не очікує GE або остаточних confidence settings. **Produces:** PostgreSQL-backed processing attempt, перевірка PDF, file storage та розрізнення initial rejection і subsequent technical failure; конкретні types/names визначаються у G0.
 
-- [ ] Прочитати repository instructions і `.gitignore`; перевірити git state без читання sensitive configuration. Визначити потребу в isolation перед application changes, не перезаписувати наявні файли.
-- [ ] Підготувати G0: підібрати сумісні Django/Python/PostgreSQL/OpenAI SDK versions; використати результати мінімального text extraction із Task 1 та обрати production text PDF parser за extraction, page counting, license та setup. Не додавати OCR dependencies на цьому кроці.
-- [ ] На основі перевіреного в Task 1 result contract запропонувати одну model для processing attempt: file reference, original name, size/pages/timestamps, processing status, nullable accepted label/score, score method, primary/fallback normalized observations, failure stage/reason, model/config identifiers. Extraction data додати тільки після G3. JSON для variable observations — пропозиція, не затверджена раніше schema.
-- [ ] У G0 явно визначити: bytes для 10 МБ; що вважається initial rejection (не PDF, перевищення, неможливість перевірити pages/encryption); технічний збій після успішного intake. Прийняті PDF зберігаються в local media; rejected uploads і temporary processing files очищаються. Окремі deletion UI, retention policy або automatic retention service не проєктувати.
-- [ ] Отримати погодження G0 перед залежною реалізацією; зафіксувати вибір у README/history.
-- [ ] Створити мінімальний Django scaffold і Compose БД; встановити тільки узгоджені dependencies. Файл `.env.example` заповнити без реальних секретів. Django/OpenAI отримують налаштування runtime без їх друку.
-- [ ] Написати regression tests на Django TestCase з fixtures без live API: rejected upload не створює запис; два прийняті завантаження одного PDF створюють два різні записи; original PDF існує у storage. Конкретні assertions визначити після G0.
+- [x] Прочитати repository instructions і `.gitignore`; перевірити git state без читання sensitive configuration. Визначити потребу в isolation перед application changes, не перезаписувати наявні файли.
+- [x] Підготувати G0: підібрати сумісні Django/Python/PostgreSQL/OpenAI SDK versions; використати результати мінімального text extraction із Task 1 та обрати production text PDF parser за extraction, page counting, license та setup. Не додавати OCR dependencies на цьому кроці.
+- [x] На основі перевіреного в Task 1 result contract запропонувати одну model для processing attempt: file reference, original name, size/pages/timestamps, processing status, nullable accepted label/score, score method, primary/fallback normalized observations, failure stage/reason, model/config identifiers. Extraction data додати тільки після G3. JSON для variable observations — пропозиція, не затверджена раніше schema.
+- [x] У G0 явно визначити: bytes для 10 МБ; що вважається initial rejection (не PDF, перевищення, неможливість перевірити pages/encryption); технічний збій після успішного intake. Прийняті PDF зберігаються в local media; rejected uploads і temporary processing files очищаються. Окремі deletion UI, retention policy або automatic retention service не проєктувати.
+- [x] Отримати погодження G0 перед залежною реалізацією; зафіксувати вибір у README без окремого історичного workflow log.
+- [x] Створити мінімальний Django scaffold і Compose БД; встановити тільки узгоджені dependencies. Файл `.env.example` заповнити без реальних секретів. Django/OpenAI отримують налаштування runtime без їх друку.
+- [x] Написати regression tests на Django TestCase з fixtures без live API: rejected upload не створює запис; два прийняті завантаження одного PDF створюють два різні записи; original PDF існує у storage. Конкретні assertions визначити після G0.
 
-- [ ] Запустити failing cases для 11 сторінок, перевищення bytes, renamed non-PDF і повторного валідного upload; перевірити failure саме потрібної поведінки.
-- [ ] Реалізувати model, migration, intake та local storage; metadata не довіряє лише extension/MIME. Не тримати DB transaction відкритою під час майбутніх LLM/OCR calls.
-- [ ] Запустити `docker compose up -d`, `python manage.py migrate`, `python manage.py check`, `python manage.py test documents.tests.test_intake`; очікування — working DB, schema та PASS boundary tests.
+- [x] Запустити failing cases для 11 сторінок, перевищення bytes, renamed non-PDF і повторного валідного upload; перевірити failure саме потрібної поведінки.
+- [x] Реалізувати model, migration, intake та local storage; metadata не довіряє лише extension/MIME. Не тримати DB transaction відкритою під час майбутніх LLM/OCR calls.
+- [x] Запустити `docker compose up -d`, `python manage.py migrate`, `python manage.py check`, `python manage.py test documents.tests.test_intake`; очікування — working DB, schema та PASS boundary tests.
 
 **Exit:** intake/storage перевірені на PostgreSQL; rejected input не створює attempt/media leftovers; accepted repeats — різні записи. Це ще не classifier demo.
 
 ## Task 2E: Systematic primary evaluation після feasibility (GE)
+
+**Status:** complete; GE approved. Implementation committed in `f8a93c0`.
 
 **Files:** create `evaluation/manifest.json`, дозволені `evaluation/documents/` fixtures; extend `experiments/primary_confidence.py`, `docs/experiments/primary-confidence.md`; save sanitized results у `evaluation/results/`.
 
