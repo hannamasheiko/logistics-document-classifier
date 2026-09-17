@@ -14,7 +14,9 @@ INSTALLED_APPS = [
     "documents",
 ]
 
-MIDDLEWARE = []
+MIDDLEWARE = [
+    "django.middleware.csrf.CsrfViewMiddleware",
+]
 ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {

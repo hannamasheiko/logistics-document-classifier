@@ -18,8 +18,6 @@ def build_default_request():
 
 
 def run_classification(attempt: ProcessingAttempt, request=None) -> ProcessingAttempt:
-    request = request or build_default_request()
-
     try:
         with attempt.original_file.open("rb") as pdf_file:
             document_text = extract_text(pdf_file)
@@ -40,6 +38,8 @@ def run_classification(attempt: ProcessingAttempt, request=None) -> ProcessingAt
             reason="The PDF has no extractable text layer.",
         )
         return attempt
+
+    request = request or build_default_request()
 
     try:
         outcome = classification.classify_document_text(document_text, request)

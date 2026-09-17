@@ -1,9 +1,11 @@
 # Logistics document classifier
 
-The repository currently contains the Task 2 application foundation: a Django
-project, PostgreSQL-backed processing attempts, local PDF storage, and validated
-PDF intake. It is not yet a classifier demo; text classification and routing are
-introduced in Tasks 2E–4.
+The repository contains a working Iteration 1 vertical slice: upload a
+text-layer PDF, get it classified as `INVOICE`, `BOL`, `POD`, or `OTHER` (or
+`UNCERTAIN`/`FAILED`), and review the result, history, and original PDF
+through a minimal Django UI. There is no visual fallback or OCR yet (planned
+for Task 5–6), so a scanned-only PDF or an ambiguous text document ends as
+`UNCERTAIN` rather than being escalated.
 
 ## G0 foundation decisions
 
@@ -62,4 +64,34 @@ Run the foundation checks:
 ```
 
 Uploaded PDFs are written beneath ignored `media/`. No API call is made by the
-Task 2 intake tests.
+Task 2 intake tests, nor by the Task 3/4 routing and pipeline tests, which
+fake the OpenAI boundary.
+
+## Running the classifier
+
+Classification calls the OpenAI Responses API, so set `OPENAI_API_KEY` in the
+shell running the server (never commit it; `.env.example` documents the
+expected variable names only):
+
+```sh
+export OPENAI_API_KEY=...
+.venv/bin/python manage.py runserver
+```
+
+Then open `http://127.0.0.1:8000/` to upload a PDF. Uploading redirects to a
+result page showing the accepted label and routing score, or the reason for
+`UNCERTAIN`/`FAILED`; `/history/` lists every attempt (shared demo history,
+no accounts); each result links to the stored original PDF.
+
+## Current limitations (Iteration 1)
+
+- Text-layer PDFs only. A scanned-only PDF has no extractable text and ends
+  as `FAILED` at the `text_extraction` stage; OCR is planned for Task 5–6.
+- No visual fallback: an unresolved primary classification (incomplete
+  evidence, or an established combined BOL/POD document) ends as `UNCERTAIN`
+  rather than escalating, which is the correct behavior for this iteration,
+  not a bug.
+- The routing score is an evidence-completeness signal for the candidate
+  class's required features, not a probability of correctness.
+- No content redaction: real uploaded document text is sent to the OpenAI
+  API as extracted, unlike the masked evaluation corpus in `experiments/`.

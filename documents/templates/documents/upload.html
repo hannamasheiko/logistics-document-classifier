@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Upload document</title>
+</head>
+<body>
+  <nav><a href="{% url 'documents:upload' %}">Upload</a> | <a href="{% url 'documents:history' %}">History</a></nav>
+  <h1>Upload a PDF for classification</h1>
+  <p>
+    Accepted classes: INVOICE, BOL, POD, OTHER. At most 10 pages and 10,000,000 bytes.
+    This is Iteration 1: text-layer PDFs only, no scanned-document fallback yet.
+    A document that cannot be classified with sufficient evidence ends as uncertain
+    rather than a guess.
+  </p>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {{ form.document.errors }}
+    {{ form.document }}
+    <button type="submit">Upload</button>
+  </form>
+</body>
+</html>

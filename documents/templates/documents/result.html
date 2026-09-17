@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Result — {{ attempt.original_name }}</title>
+</head>
+<body>
+  <nav><a href="{% url 'documents:upload' %}">Upload</a> | <a href="{% url 'documents:history' %}">History</a></nav>
+  <h1>{{ attempt.original_name }}</h1>
+  <p>Status: <strong>{{ attempt.get_status_display }}</strong></p>
+
+  {% if attempt.status == "ACCEPTED" %}
+    <p>Accepted label: <strong>{{ attempt.get_accepted_label_display }}</strong></p>
+    <p>
+      Routing score: {{ attempt.routing_score }} (method: {{ attempt.score_method }}).
+      This score is an evidence-completeness signal, not a probability of correctness.
+    </p>
+  {% elif attempt.status == "UNCERTAIN" %}
+    <p>The document could not be classified with sufficient evidence.</p>
+    {% with reason=attempt.primary_metadata.routing.reason %}
+      {% if reason %}<p>Reason: {{ reason }}</p>{% endif %}
+    {% endwith %}
+    <p>No visual fallback is available yet in this iteration; uncertain text-layer documents end here.</p>
+  {% elif attempt.status == "FAILED" %}
+    <p>Processing failed at stage <strong>{{ attempt.failure_stage }}</strong> ({{ attempt.failure_category }}).</p>
+    <p>{{ attempt.failure_reason }}</p>
+  {% else %}
+    <p>Still processing.</p>
+  {% endif %}
+
+  <p><a href="{% url 'documents:original' pk=attempt.pk %}">View original PDF</a></p>
+</body>
+</html>
