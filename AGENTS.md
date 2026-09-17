@@ -15,9 +15,9 @@ These instructions apply to all AI-assisted work in this repository.
 
 7. Use the installed Superpowers skills selectively. Use Brainstorming before designing the solution and Planning only after the design is agreed. Do not automatically invoke additional workflows or add process ceremony unless they are useful for the current task.
 
-## Historical snapshots
+## Workflow narrative files
 
-8. `AI_WORKFLOW.md` and `AI_WORKFLOW_UA.md` are historical snapshots through Task 1. Do not update, synchronize, translate, or read them as a prerequisite for future work. Do not create a replacement repository logging file or process.
+8. `AI_WORKFLOW.md` and `AI_WORKFLOW_UA.md` are the user's own workflow narrative: manually authored and maintained by her (dictated and corrected over time), not an automated prompt/response log and not an AI-agent-owned artifact. Do not update, add to, rewrite, translate, or synchronize their content on your own initiative, and do not treat them as a prerequisite to read before other work. You may make a narrowly scoped change only when the user explicitly requests it and defines the scope (for example, formatting only, with no wording changes). Do not create a replacement repository logging file or process, automated or otherwise.
 
 ## Verification and Git history
 
