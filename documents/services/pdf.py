@@ -19,6 +19,17 @@ class PDFInspection:
     page_count: int
 
 
+def extract_text(pdf_file) -> str:
+    """Extract text from an already-validated PDF, joined page by page.
+
+    Callers are expected to have passed the file through `inspect_pdf` at
+    intake, so page count/encryption are not re-checked here.
+    """
+    reader = PdfReader(pdf_file, strict=False)
+    pages = [(page.extract_text() or "").strip() for page in reader.pages]
+    return "\n\n".join(pages)
+
+
 def inspect_pdf(uploaded_file) -> PDFInspection:
     size_bytes = uploaded_file.size
     if size_bytes > MAX_PDF_BYTES:

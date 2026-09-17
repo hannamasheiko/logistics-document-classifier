@@ -194,20 +194,28 @@ Processing розрізняє initial rejection і technical failure після 
 
 ## Task 3: Text classification, routing і attempt lifecycle
 
+**Status:** complete. Implementation committed pending user commit approval.
+
 **Files:** create/modify `documents/services/{routing,processing}.py`, `documents/ai/classification.py`, `documents/ai/prompts/classification.txt`; test `documents/tests/{test_routing,test_pipeline}.py`. Місце спільних типів визначити за погодженим після experiment контрактом, без обов’язкового `contracts.py` наперед.
 
 **Consumes:** model/API напрям із Task 1/G1, погоджені score/checks із Task 2E/GE, Task 2 attempt. **Produces:** primary text classification, backend routing та synchronous attempt lifecycle без fallback у першій iteration; конкретні types/signatures — за результатами G1 і GE.
 
-- [ ] Написати pure routing tests для accepted, established ambiguity та unresolved observation; використовувати погоджені checks. Перевірити, що неприйнята primary відповідь у першій iteration завершується як `UNCERTAIN` без fallback, а established ambiguity не запускає fallback і після його додавання. Додати сценарії непідтверджених evidence-цитат, contradictions попри високий сумарний score та відсутніх target features, які не повинні автоматично давати OTHER.
+- [x] Написати pure routing tests для accepted, established ambiguity та unresolved observation; використовувати погоджені checks. Перевірити, що неприйнята primary відповідь у першій iteration завершується як `UNCERTAIN` без fallback, а established ambiguity не запускає fallback і після його додавання. Додати сценарії непідтверджених evidence-цитат, contradictions попри високий сумарний score та відсутніх target features, які не повинні автоматично давати OTHER.
 
-- [ ] Запустити `python manage.py test documents.tests.test_routing`; переконатися, що відсутня routing implementation спричиняє очікуваний failure.
-- [ ] Реалізувати routing із пріоритетом established ambiguity, потім acceptance checks, потім escalation або interim uncertainty. Candidate label не заповнює final accepted label, поки routing не прийняв результат.
-- [ ] Реалізувати OpenAI call/strict response validation згідно G1 та GE; persist тільки normalized observations. Invalid response/API timeout — technical failure за погодженою політикою, не автоматичний OTHER.
-- [ ] Написати pipeline tests з fake OpenAI boundary: accepted BOL, OTHER, uncertain, extraction-of-text failure, invalid model response, API timeout. Assertion: failure зберігає PDF/reason; final label порожній у non-accepted outcome.
-- [ ] Реалізувати synchronous lifecycle з короткими DB writes до/після external work. В Iteration 1 не викликати renderer/OCR/fallback.
-- [ ] Запустити `python manage.py test documents.tests.test_routing documents.tests.test_pipeline`; потім невеликий погоджений live smoke з реальним text PDF. Mocks підтверджують control flow, live examples — фактичну інтеграцію; звітувати окремо.
+- [x] Запустити `python manage.py test documents.tests.test_routing`; переконатися, що відсутня routing implementation спричиняє очікуваний failure.
+- [x] Реалізувати routing із пріоритетом established ambiguity, потім acceptance checks, потім escalation або interim uncertainty. Candidate label не заповнює final accepted label, поки routing не прийняв результат.
+- [x] Реалізувати OpenAI call/strict response validation згідно G1 та GE; persist тільки normalized observations. Invalid response/API timeout — technical failure за погодженою політикою, не автоматичний OTHER.
+- [x] Написати pipeline tests з fake OpenAI boundary: accepted BOL, OTHER, uncertain, extraction-of-text failure, invalid model response, API timeout. Assertion: failure зберігає PDF/reason; final label порожній у non-accepted outcome.
+- [x] Реалізувати synchronous lifecycle з короткими DB writes до/після external work. В Iteration 1 не викликати renderer/OCR/fallback.
+- [x] Запустити `python manage.py test documents.tests.test_routing documents.tests.test_pipeline`; потім невеликий погоджений live smoke з реальним text PDF. Mocks підтверджують control flow, live examples — фактичну інтеграцію; звітувати окремо.
 
 **Exit:** text path працює з реальною primary model, усі non-accepted cases відокремлені від accepted results.
+
+### Task 3 verification record
+
+- `python manage.py check` → 0 issues; `python manage.py makemigrations --check --dry-run` → no changes; `python manage.py test documents.tests` → 25/25 passed (9 routing, 7 pipeline, 9 intake).
+- Live smoke: one real OpenAI call against `experiments/local-control-pdfs/US_Inland_Trucking_Invoice_Filled.pdf` (G1 control, expected `INVOICE`) through the production `extract_text` → `classify_document_text` → `evaluate_routing` path. Result: `candidate_class=INVOICE`, `action=ACCEPT`, `reason=complete_candidate_combination`, `routing_score=1.0`; usage 2,887 input / 303 output / 17 reasoning tokens.
+- Deferred by explicit user decision: masking sensitive values (account/routing/SWIFT-like identifiers) in real uploaded document text before the OpenAI call is not implemented in the production path. The evaluation-corpus redaction in `experiments/extract_control_text.py` does not carry over here. Revisit only as a separately requested task if time permits; not a Task 3 blocker.
 
 ## Task 4: Working vertical slice через UI/history
 
