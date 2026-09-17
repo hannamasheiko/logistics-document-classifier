@@ -180,11 +180,11 @@ Processing розрізняє initial rejection і technical failure після 
 
 **Consumes:** Task 1/G1: model/API для structured evidence, мінімальний evidence contract та findings щодо deterministic routing. Не потребує Django models/PostgreSQL або завершення Task 2; application foundation та підготовка evaluation можуть просуватися незалежно. **Produces:** representative manifest/split, перевірені primary score calculation, acceptance/ambiguity checks та початковий робочий threshold для Task 3.
 
-- [ ] Підготувати невеликий representative text-layer set для чотирьох класів і combined ambiguity. Manifest містить provenance, expected label/outcome, template group, split та право поширення; не задавати обов'язкової кількості 60–100.
-- [ ] Узгодити спірні labels. Розділити tuning та held-out без однакових шаблонів у двох групах. Документи, використані для вибору моделей/prompts у feasibility, не вважати незалежними held-out examples.
-- [ ] На tuning examples уточнити evidence-based score calculation, sufficiency/contradiction checks, правила прийняття OTHER, ambiguity checks і threshold; no-label/missing-score/invalid-output не перетворювати автоматично на OTHER.
-- [ ] Записати expected/actual outcomes, scores/method, помилки серед accepted, правильні classifications, відправлені на escalation, uncertainty, evidence errors/contradictions та обмеження; запропонувати конкретні routing settings користувачу для GE. Мала кількість помилок не доводить calibrated probability або routing reliability.
-- [ ] Після погодження заморозити model/prompt/config/checks і перевірити held-out без підбору на ньому. Зберегти фактичний результат; якщо перевірка виявляє проблему, явно повернутися до review, не приховувати retuning як незалежну перевірку.
+- [x] Підготувати невеликий representative text-layer set для чотирьох класів і combined ambiguity. Manifest містить provenance, expected label/outcome, template group, split та право поширення; не задавати обов'язкової кількості 60–100.
+- [x] Узгодити спірні labels. Розділити tuning та held-out без однакових шаблонів у двох групах. Документи, використані для вибору моделей/prompts у feasibility, не вважати незалежними held-out examples.
+- [x] На tuning examples уточнити evidence-based score calculation, sufficiency/contradiction checks, правила прийняття OTHER, ambiguity checks і threshold; no-label/missing-score/invalid-output не перетворювати автоматично на OTHER.
+- [x] Записати expected/actual outcomes, scores/method, помилки серед accepted, правильні classifications, відправлені на escalation, uncertainty, evidence errors/contradictions та обмеження; запропонувати конкретні routing settings користувачу для GE. Мала кількість помилок не доводить calibrated probability або routing reliability.
+- [x] Після погодження заморозити model/prompt/config/checks і перевірити held-out без підбору на ньому. Зберегти фактичний результат; якщо перевірка виявляє проблему, явно повернутися до review, не приховувати retuning як незалежну перевірку.
 
 **Exit:** GE закрито reviewable evaluation report і погодженими routing settings або явно зафіксовано причину, що блокує їх прийняття. Foundation та UI structure можуть розвиватися, але vertical slice не оголошується перевіреним без цієї evaluation. Fallback/extraction evaluation залишаються у своїх наступних tasks.
 

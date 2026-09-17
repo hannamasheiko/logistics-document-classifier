@@ -1,4 +1,7 @@
 ROUTING_RULES_ID = "critical-combinations-experimental-v1"
+PRIMARY_ROUTING_RULES_ID = "critical-combinations-primary-v1"
+PRIMARY_SCORE_METHOD_ID = "critical-feature-coverage-v1"
+PRIMARY_ACCEPTANCE_THRESHOLD = 1.0
 
 CRITICAL_FEATURES = {
     "BOL": (
@@ -35,7 +38,13 @@ def _match_ratio(payload: dict, class_name: str) -> float:
     return present_count / len(required)
 
 
-def evaluate_routing(payload: dict) -> dict:
+def evaluate_routing(
+    payload: dict,
+    *,
+    routing_rules_id: str = ROUTING_RULES_ID,
+    score_method_id: str | None = None,
+    acceptance_threshold: float = 1.0,
+) -> dict:
     candidate_class = payload["candidate_class"]
     match_ratios = {
         class_name: _match_ratio(payload, class_name)
@@ -44,7 +53,7 @@ def evaluate_routing(payload: dict) -> dict:
     complete_classes = [
         class_name
         for class_name in CRITICAL_FEATURES
-        if match_ratios[class_name] == 1.0
+        if match_ratios[class_name] >= acceptance_threshold
     ]
     complete_targets = [
         class_name for class_name in TARGET_CLASSES if class_name in complete_classes
@@ -58,6 +67,10 @@ def evaluate_routing(payload: dict) -> dict:
     result = {
         "candidate_class": candidate_class,
         "candidate_match_ratio": match_ratios[candidate_class],
+        "routing_score": match_ratios[candidate_class],
+        "score_method": score_method_id,
+        "acceptance_threshold": acceptance_threshold,
+        "routing_rules_id": routing_rules_id,
         "class_match_ratios": match_ratios,
         "complete_classes": complete_classes,
         "advisory_model_diagnostics": advisory_diagnostics,
@@ -107,3 +120,12 @@ def evaluate_routing(payload: dict) -> dict:
         }
 
     return {**result, "action": "ACCEPT", "reason": "complete_candidate_combination"}
+
+
+def evaluate_primary_routing(payload: dict) -> dict:
+    return evaluate_routing(
+        payload,
+        routing_rules_id=PRIMARY_ROUTING_RULES_ID,
+        score_method_id=PRIMARY_SCORE_METHOD_ID,
+        acceptance_threshold=PRIMARY_ACCEPTANCE_THRESHOLD,
+    )

@@ -376,14 +376,31 @@ def run_experiment(
     request,
     require_full_set: bool = True,
     prior_spend_usd: float = 0.0,
+    representative_set: bool = False,
+    max_calls: int = MAX_CALLS,
+    spend_guardrail_usd: float = SPEND_GUARDRAIL_USD,
+    config_id: str = CONFIG_ID,
+    prompt_id: str = PROMPT_ID,
+    schema_id: str = SCHEMA_ID,
+    model: str = MODEL,
+    request_builder=build_request_parameters,
 ) -> dict:
     expected_classes = {"INVOICE", "BOL", "POD", "OTHER"}
-    if not 0 <= prior_spend_usd < SPEND_GUARDRAIL_USD:
+    if max_calls < 1:
+        raise ValueError("The call limit must be positive.")
+    if not 0 < spend_guardrail_usd:
+        raise ValueError("The spend guardrail must be positive.")
+    if not 0 <= prior_spend_usd < spend_guardrail_usd:
         raise ValueError("Prior spend must be below the experiment spend guardrail.")
     record_classes = [record.get("expected_class") for record in records]
-    if require_full_set and (len(records) != 4 or set(record_classes) != expected_classes):
+    if representative_set:
+        if not records or not set(record_classes).issubset(expected_classes | {None}):
+            raise ValueError("Representative records use agreed classes or null only.")
+    elif require_full_set and (
+        len(records) != 4 or set(record_classes) != expected_classes
+    ):
         raise ValueError("The live probe requires exactly one control for each agreed class.")
-    if not require_full_set and (
+    elif not require_full_set and (
         not 1 <= len(records) <= 4
         or not set(record_classes).issubset(expected_classes)
         or len(record_classes) != len(set(record_classes))
@@ -400,12 +417,21 @@ def run_experiment(
         result = {
             "source_file": record["source_file"],
             "expected_class": record["expected_class"],
-            "model": MODEL,
+            "model": model,
             "attempts": [],
         }
+        for metadata_key in (
+            "document_id",
+            "split",
+            "template_group",
+            "expected_outcome",
+            "redistribution",
+        ):
+            if metadata_key in record:
+                result[metadata_key] = record[metadata_key]
 
         for attempt in range(1, MAX_RETRIES_PER_DOCUMENT + 2):
-            if call_count >= MAX_CALLS:
+            if call_count >= max_calls:
                 result.update(status="failed", error_category="call_limit_reached")
                 halted = True
                 break
@@ -413,7 +439,7 @@ def run_experiment(
                 prior_spend_usd
                 + estimated_spend
                 + PLANNED_MAX_COST_PER_CALL_USD
-                > SPEND_GUARDRAIL_USD
+                > spend_guardrail_usd
             ):
                 result.update(status="failed", error_category="spend_guardrail_reached")
                 halted = True
@@ -421,7 +447,7 @@ def run_experiment(
 
             call_count += 1
             try:
-                response = request(build_request_parameters(document_text))
+                response = request(request_builder(document_text))
             except RetryableRequestFailure as error:
                 result["attempts"].append(
                     {
@@ -510,7 +536,7 @@ def run_experiment(
             break
 
         results.append(result)
-        if prior_spend_usd + estimated_spend >= SPEND_GUARDRAIL_USD:
+        if prior_spend_usd + estimated_spend >= spend_guardrail_usd:
             halted = True
         if halted:
             break
@@ -518,10 +544,10 @@ def run_experiment(
     return {
         "provider": PROVIDER_ID,
         "endpoint": ENDPOINT_ID,
-        "config_id": CONFIG_ID,
-        "prompt_id": PROMPT_ID,
-        "schema_id": SCHEMA_ID,
-        "model": MODEL,
+        "config_id": config_id,
+        "prompt_id": prompt_id,
+        "schema_id": schema_id,
+        "model": model,
         "expected_count": len(records),
         "call_count": call_count,
         "estimated_spend_usd": round(estimated_spend, 8),

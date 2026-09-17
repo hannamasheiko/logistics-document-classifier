@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "taxonomy": ["INVOICE", "BOL", "POD", "OTHER"],
+  "documents": [
+    {
+      "id": "g1-bol-filled",
+      "path": "../experiments/local-control-pdfs/bol_3.pdf",
+      "split": "tuning",
+      "template_group": "g1-us-government-bol",
+      "expected_label": "BOL",
+      "expected_outcome": "ACCEPT",
+      "provenance": "user-supplied Task 1 control",
+      "redistribution": "not-established",
+      "used_in_g1": true
+    },
+    {
+      "id": "g1-pod-filled",
+      "path": "../experiments/local-control-pdfs/dhl_pod.pdf",
+      "split": "tuning",
+      "template_group": "g1-carrier-pod",
+      "expected_label": "POD",
+      "expected_outcome": "ACCEPT",
+      "provenance": "user-supplied Task 1 control",
+      "redistribution": "not-established",
+      "used_in_g1": true
+    },
+    {
+      "id": "g1-logistics-invoice-filled",
+      "path": "../experiments/local-control-pdfs/US_Inland_Trucking_Invoice_Filled.pdf",
+      "split": "tuning",
+      "template_group": "g1-inland-trucking-invoice",
+      "expected_label": "INVOICE",
+      "expected_outcome": "ACCEPT",
+      "provenance": "user-supplied Task 1 control",
+      "redistribution": "not-established",
+      "used_in_g1": true
+    },
+    {
+      "id": "g1-commercial-invoice-filled",
+      "path": "../experiments/local-control-pdfs/commercial_invoice.pdf",
+      "split": "tuning",
+      "template_group": "g1-commercial-invoice",
+      "expected_label": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "provenance": "user-supplied Task 1 control",
+      "redistribution": "not-established",
+      "used_in_g1": true
+    },
+    {
+      "id": "tuning-bol-blank-delivery",
+      "path": "documents/tuning-bol-blank-delivery.pdf",
+      "split": "tuning",
+      "template_group": "synthetic-straight-bol-with-blank-delivery",
+      "expected_label": "BOL",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "tuning-pod-bol-reference",
+      "path": "documents/tuning-pod-bol-reference.pdf",
+      "split": "tuning",
+      "template_group": "synthetic-pod-with-bol-reference",
+      "expected_label": "POD",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "tuning-invoice-with-bol-reference",
+      "path": "documents/tuning-invoice-with-bol-reference.pdf",
+      "split": "tuning",
+      "template_group": "synthetic-broker-invoice-with-bol-reference",
+      "expected_label": "INVOICE",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "tuning-commercial-invoice-with-freight",
+      "path": "documents/tuning-commercial-invoice-with-freight.pdf",
+      "split": "tuning",
+      "template_group": "synthetic-commercial-invoice-with-freight",
+      "expected_label": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "tuning-combined-bol-pod",
+      "path": "documents/tuning-combined-bol-pod.pdf",
+      "split": "tuning",
+      "template_group": "synthetic-combined-straight-bol-delivery-receipt",
+      "expected_label": null,
+      "expected_outcome": "UNCERTAIN_NO_FALLBACK",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "tuning-incomplete-bol-fragment",
+      "path": "documents/tuning-incomplete-bol-fragment.pdf",
+      "split": "tuning",
+      "template_group": "synthetic-cropped-bol-fragment",
+      "expected_label": "BOL",
+      "expected_outcome": "ESCALATE",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "tuning-incomplete-invoice-fragment",
+      "path": "documents/tuning-incomplete-invoice-fragment.pdf",
+      "split": "tuning",
+      "template_group": "synthetic-cropped-logistics-invoice-fragment",
+      "expected_label": "INVOICE",
+      "expected_outcome": "ESCALATE",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "tuning-incomplete-customs-fragment",
+      "path": "documents/tuning-incomplete-customs-fragment.pdf",
+      "split": "tuning",
+      "template_group": "synthetic-cropped-customs-fragment",
+      "expected_label": "OTHER",
+      "expected_outcome": "ESCALATE",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "heldout-bol-produce",
+      "path": "documents/heldout-bol-produce.pdf",
+      "split": "heldout",
+      "template_group": "synthetic-produce-bol",
+      "expected_label": "BOL",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "heldout-bol-ocean",
+      "path": "documents/heldout-bol-ocean.pdf",
+      "split": "heldout",
+      "template_group": "synthetic-ocean-bol",
+      "expected_label": "BOL",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "heldout-pod-electronics",
+      "path": "documents/heldout-pod-electronics.pdf",
+      "split": "heldout",
+      "template_group": "synthetic-electronics-delivery-confirmation",
+      "expected_label": "POD",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "heldout-pod-furniture",
+      "path": "documents/heldout-pod-furniture.pdf",
+      "split": "heldout",
+      "template_group": "synthetic-furniture-signed-receipt",
+      "expected_label": "POD",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "heldout-invoice-carrier",
+      "path": "documents/heldout-invoice-carrier.pdf",
+      "split": "heldout",
+      "template_group": "synthetic-carrier-freight-invoice",
+      "expected_label": "INVOICE",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "heldout-invoice-drayage",
+      "path": "documents/heldout-invoice-drayage.pdf",
+      "split": "heldout",
+      "template_group": "synthetic-drayage-services-invoice",
+      "expected_label": "INVOICE",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "heldout-other-packing-list",
+      "path": "documents/heldout-other-packing-list.pdf",
+      "split": "heldout",
+      "template_group": "synthetic-export-packing-list",
+      "expected_label": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "heldout-other-purchase-order",
+      "path": "documents/heldout-other-purchase-order.pdf",
+      "split": "heldout",
+      "template_group": "synthetic-purchase-order",
+      "expected_label": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "heldout-combined-bol-pod",
+      "path": "documents/heldout-combined-bol-pod.pdf",
+      "split": "heldout",
+      "template_group": "synthetic-completed-combined-record",
+      "expected_label": null,
+      "expected_outcome": "UNCERTAIN_NO_FALLBACK",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "heldout-incomplete-pod-fragment",
+      "path": "documents/heldout-incomplete-pod-fragment.pdf",
+      "split": "heldout",
+      "template_group": "synthetic-cropped-pod-fragment",
+      "expected_label": "POD",
+      "expected_outcome": "ESCALATE",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    }
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "provider": "openai",
+  "endpoint": "responses",
+  "config_id": "primary-text-evaluation-v2",
+  "prompt_id": "primary-classification-evidence-v2",
+  "schema_id": "primary-classification-evidence-v2",
+  "model": "gpt-5.4-mini-2026-03-17",
+  "expected_count": 10,
+  "call_count": 10,
+  "estimated_spend_usd": 0.031878,
+  "prior_spend_usd": 0.0,
+  "cumulative_estimated_spend_usd": 0.031878,
+  "halted": false,
+  "outcome_counts": {
+    "accepted_correct": 8,
+    "accepted_incorrect": 0,
+    "expected_escalation": 1,
+    "unnecessary_escalation": 0,
+    "semantic_uncertainty_correct": 1,
+    "semantic_uncertainty_incorrect": 0,
+    "technical_or_invalid": 0
+  },
+  "routing_rules_id": "critical-combinations-primary-v1",
+  "score_method": "critical-feature-coverage-v1",
+  "acceptance_threshold": 1.0,
+  "results": [
+    {
+      "document_id": "v2-heldout-bol-rail",
+      "split": "heldout",
+      "template_group": "v2-synthetic-rail-bol",
+      "redistribution": "allowed",
+      "expected_class": "BOL",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "BOL",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "BOL"
+      ]
+    },
+    {
+      "document_id": "v2-heldout-bol-intermodal",
+      "split": "heldout",
+      "template_group": "v2-synthetic-negotiable-intermodal-bol",
+      "redistribution": "allowed",
+      "expected_class": "BOL",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "BOL",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "BOL"
+      ]
+    },
+    {
+      "document_id": "v2-heldout-pod-certificate",
+      "split": "heldout",
+      "template_group": "v2-synthetic-delivery-completion-certificate",
+      "redistribution": "allowed",
+      "expected_class": "POD",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "POD",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "POD"
+      ]
+    },
+    {
+      "document_id": "v2-heldout-pod-freight-receipt",
+      "split": "heldout",
+      "template_group": "v2-synthetic-signed-freight-receipt",
+      "redistribution": "allowed",
+      "expected_class": "POD",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "POD",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "POD"
+      ]
+    },
+    {
+      "document_id": "v2-heldout-invoice-forwarder",
+      "split": "heldout",
+      "template_group": "v2-synthetic-freight-forwarder-invoice",
+      "redistribution": "allowed",
+      "expected_class": "INVOICE",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "INVOICE",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "INVOICE"
+      ]
+    },
+    {
+      "document_id": "v2-heldout-invoice-warehouse",
+      "split": "heldout",
+      "template_group": "v2-synthetic-warehouse-logistics-invoice",
+      "redistribution": "allowed",
+      "expected_class": "INVOICE",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "INVOICE",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "INVOICE"
+      ]
+    },
+    {
+      "document_id": "v2-heldout-other-inspection-certificate",
+      "split": "heldout",
+      "template_group": "v2-synthetic-quality-inspection-certificate",
+      "redistribution": "allowed",
+      "expected_class": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "OTHER",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "OTHER"
+      ]
+    },
+    {
+      "document_id": "v2-heldout-other-pick-list",
+      "split": "heldout",
+      "template_group": "v2-synthetic-warehouse-pick-list",
+      "redistribution": "allowed",
+      "expected_class": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "OTHER",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "OTHER"
+      ]
+    },
+    {
+      "document_id": "v2-heldout-combined-intermodal-delivery",
+      "split": "heldout",
+      "template_group": "v2-synthetic-combined-intermodal-delivery",
+      "redistribution": "allowed",
+      "expected_outcome": "UNCERTAIN_NO_FALLBACK",
+      "status": "completed",
+      "candidate_class": "BOL",
+      "routing_action": "UNCERTAIN_NO_FALLBACK",
+      "routing_reason": "established_combined_bol_pod",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "BOL",
+        "POD"
+      ]
+    },
+    {
+      "document_id": "v2-heldout-incomplete-invoice-fragment",
+      "split": "heldout",
+      "template_group": "v2-synthetic-incomplete-freight-invoice",
+      "redistribution": "allowed",
+      "expected_class": "INVOICE",
+      "expected_outcome": "ESCALATE",
+      "status": "completed",
+      "candidate_class": "INVOICE",
+      "routing_action": "ESCALATE",
+      "routing_reason": "incomplete_candidate_combination",
+      "routing_score": 0.3333333333333333,
+      "complete_classes": []
+    }
+  ],
+  "manual_semantic_evidence_review": {
+    "accepted_material_snippet_concerns": 2,
+    "accepted_material_document_ids": [
+      "v2-heldout-bol-rail",
+      "v2-heldout-bol-intermodal"
+    ],
+    "accepted_material_observation_id": "bol_shipment_structure",
+    "accepted_material_finding": "The document supports the composite feature, but the selected exact evidence snippet names only the shipper and is insufficient by itself.",
+    "non_candidate_snippet_concerns": 2,
+    "non_candidate_document_ids": [
+      "v2-heldout-pod-certificate",
+      "v2-heldout-pod-freight-receipt"
+    ],
+    "non_candidate_observation_id": "bol_shipment_structure",
+    "contradictory_evidence_findings": 0
+  }
+}

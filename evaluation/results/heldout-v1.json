@@ -1,0 +1,182 @@
+{
+  "provider": "openai",
+  "endpoint": "responses",
+  "config_id": "primary-text-evaluation-v1",
+  "prompt_id": "primary-classification-evidence-v1",
+  "schema_id": "primary-classification-evidence-v1",
+  "model": "gpt-5.4-mini-2026-03-17",
+  "expected_count": 10,
+  "call_count": 10,
+  "estimated_spend_usd": 0.0319485,
+  "prior_spend_usd": 0.0,
+  "cumulative_estimated_spend_usd": 0.0319485,
+  "halted": false,
+  "outcome_counts": {
+    "accepted_correct": 6,
+    "accepted_incorrect": 0,
+    "expected_escalation": 1,
+    "unnecessary_escalation": 2,
+    "semantic_uncertainty_correct": 1,
+    "semantic_uncertainty_incorrect": 0,
+    "technical_or_invalid": 0
+  },
+  "routing_rules_id": "critical-combinations-primary-v1",
+  "score_method": "critical-feature-coverage-v1",
+  "acceptance_threshold": 1.0,
+  "results": [
+    {
+      "document_id": "heldout-bol-produce",
+      "split": "heldout",
+      "template_group": "synthetic-produce-bol",
+      "redistribution": "allowed",
+      "expected_class": "BOL",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "BOL",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "BOL"
+      ]
+    },
+    {
+      "document_id": "heldout-bol-ocean",
+      "split": "heldout",
+      "template_group": "synthetic-ocean-bol",
+      "redistribution": "allowed",
+      "expected_class": "BOL",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "BOL",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "BOL"
+      ]
+    },
+    {
+      "document_id": "heldout-pod-electronics",
+      "split": "heldout",
+      "template_group": "synthetic-electronics-delivery-confirmation",
+      "redistribution": "allowed",
+      "expected_class": "POD",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "POD",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "POD"
+      ]
+    },
+    {
+      "document_id": "heldout-pod-furniture",
+      "split": "heldout",
+      "template_group": "synthetic-furniture-signed-receipt",
+      "redistribution": "allowed",
+      "expected_class": "POD",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "POD",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "POD"
+      ]
+    },
+    {
+      "document_id": "heldout-invoice-carrier",
+      "split": "heldout",
+      "template_group": "synthetic-carrier-freight-invoice",
+      "redistribution": "allowed",
+      "expected_class": "INVOICE",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "INVOICE",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "INVOICE"
+      ]
+    },
+    {
+      "document_id": "heldout-invoice-drayage",
+      "split": "heldout",
+      "template_group": "synthetic-drayage-services-invoice",
+      "redistribution": "allowed",
+      "expected_class": "INVOICE",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "INVOICE",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "INVOICE"
+      ]
+    },
+    {
+      "document_id": "heldout-other-packing-list",
+      "split": "heldout",
+      "template_group": "synthetic-export-packing-list",
+      "redistribution": "allowed",
+      "expected_class": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "OTHER",
+      "routing_action": "ESCALATE",
+      "routing_reason": "incomplete_candidate_combination",
+      "routing_score": 0.5,
+      "complete_classes": []
+    },
+    {
+      "document_id": "heldout-other-purchase-order",
+      "split": "heldout",
+      "template_group": "synthetic-purchase-order",
+      "redistribution": "allowed",
+      "expected_class": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "OTHER",
+      "routing_action": "ESCALATE",
+      "routing_reason": "incomplete_candidate_combination",
+      "routing_score": 0.5,
+      "complete_classes": []
+    },
+    {
+      "document_id": "heldout-combined-bol-pod",
+      "split": "heldout",
+      "template_group": "synthetic-completed-combined-record",
+      "redistribution": "allowed",
+      "expected_outcome": "UNCERTAIN_NO_FALLBACK",
+      "status": "completed",
+      "candidate_class": "BOL",
+      "routing_action": "UNCERTAIN_NO_FALLBACK",
+      "routing_reason": "established_combined_bol_pod",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "BOL",
+        "POD"
+      ]
+    },
+    {
+      "document_id": "heldout-incomplete-pod-fragment",
+      "split": "heldout",
+      "template_group": "synthetic-cropped-pod-fragment",
+      "redistribution": "allowed",
+      "expected_class": "POD",
+      "expected_outcome": "ESCALATE",
+      "status": "completed",
+      "candidate_class": "POD",
+      "routing_action": "ESCALATE",
+      "routing_reason": "incomplete_candidate_combination",
+      "routing_score": 0.3333333333333333,
+      "complete_classes": []
+    }
+  ]
+}

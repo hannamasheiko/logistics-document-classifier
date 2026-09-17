@@ -1,12 +1,24 @@
 import unittest
 
-from experiments.deterministic_routing import ROUTING_RULES_ID, evaluate_routing
+from experiments.deterministic_routing import (
+    PRIMARY_ACCEPTANCE_THRESHOLD,
+    PRIMARY_ROUTING_RULES_ID,
+    PRIMARY_SCORE_METHOD_ID,
+    ROUTING_RULES_ID,
+    evaluate_primary_routing,
+    evaluate_routing,
+)
 from experiments.primary_confidence import DIAGNOSTIC_IDS, FEATURE_IDS
 
 
 class DeterministicRoutingTests(unittest.TestCase):
     def test_g1_approved_routing_rules_identifier_is_frozen(self):
         self.assertEqual(ROUTING_RULES_ID, "critical-combinations-experimental-v1")
+
+    def test_ge_approved_primary_settings_are_frozen_separately(self):
+        self.assertEqual(PRIMARY_ROUTING_RULES_ID, "critical-combinations-primary-v1")
+        self.assertEqual(PRIMARY_SCORE_METHOD_ID, "critical-feature-coverage-v1")
+        self.assertEqual(PRIMARY_ACCEPTANCE_THRESHOLD, 1.0)
 
     def make_payload(self, candidate_class, present_features=(), present_diagnostics=()):
         return {
@@ -113,6 +125,24 @@ class DeterministicRoutingTests(unittest.TestCase):
 
         self.assertEqual(result["action"], "ACCEPT")
         self.assertEqual(result["advisory_model_diagnostics"], ["multiple_target_purposes"])
+
+    def test_primary_routing_reports_approved_score_method_and_threshold(self):
+        payload = self.make_payload(
+            "BOL",
+            present_features=(
+                "bol_identity",
+                "bol_transport_obligation",
+                "bol_shipment_structure",
+            ),
+        )
+
+        result = evaluate_primary_routing(payload)
+
+        self.assertEqual(result["routing_rules_id"], PRIMARY_ROUTING_RULES_ID)
+        self.assertEqual(result["score_method"], PRIMARY_SCORE_METHOD_ID)
+        self.assertEqual(result["acceptance_threshold"], 1.0)
+        self.assertEqual(result["routing_score"], 1.0)
+        self.assertEqual(result["action"], "ACCEPT")
 
 
 if __name__ == "__main__":

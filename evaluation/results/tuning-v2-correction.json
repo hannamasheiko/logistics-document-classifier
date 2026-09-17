@@ -1,0 +1,60 @@
+{
+  "provider": "openai",
+  "endpoint": "responses",
+  "config_id": "primary-text-evaluation-v2",
+  "prompt_id": "primary-classification-evidence-v2",
+  "schema_id": "primary-classification-evidence-v2",
+  "model": "gpt-5.4-mini-2026-03-17",
+  "expected_count": 2,
+  "call_count": 2,
+  "estimated_spend_usd": 0.00619425,
+  "prior_spend_usd": 0.0,
+  "cumulative_estimated_spend_usd": 0.00619425,
+  "halted": false,
+  "outcome_counts": {
+    "accepted_correct": 2,
+    "accepted_incorrect": 0,
+    "expected_escalation": 0,
+    "unnecessary_escalation": 0,
+    "semantic_uncertainty_correct": 0,
+    "semantic_uncertainty_incorrect": 0,
+    "technical_or_invalid": 0
+  },
+  "routing_rules_id": "critical-combinations-primary-v1",
+  "score_method": "critical-feature-coverage-v1",
+  "acceptance_threshold": 1.0,
+  "results": [
+    {
+      "document_id": "v2-tuning-packing-list",
+      "split": "tuning",
+      "template_group": "v1-failed-export-packing-list",
+      "redistribution": "allowed",
+      "expected_class": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "OTHER",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "OTHER"
+      ]
+    },
+    {
+      "document_id": "v2-tuning-purchase-order",
+      "split": "tuning",
+      "template_group": "v1-failed-purchase-order",
+      "redistribution": "allowed",
+      "expected_class": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "status": "completed",
+      "candidate_class": "OTHER",
+      "routing_action": "ACCEPT",
+      "routing_reason": "complete_candidate_combination",
+      "routing_score": 1.0,
+      "complete_classes": [
+        "OTHER"
+      ]
+    }
+  ]
+}

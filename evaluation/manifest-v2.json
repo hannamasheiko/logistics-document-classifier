@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "evaluation_version": 2,
+  "parent_manifest": "manifest.json",
+  "change_reason": "Broaden non_target_identity after held-out V1 unnecessarily escalated explicit packing-list and purchase-order documents.",
+  "taxonomy": ["INVOICE", "BOL", "POD", "OTHER"],
+  "documents": [
+    {
+      "id": "v2-tuning-packing-list",
+      "path": "documents/heldout-other-packing-list.pdf",
+      "split": "tuning",
+      "template_group": "v1-failed-export-packing-list",
+      "expected_label": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic; reused from held-out V1 after result review",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "v2-tuning-purchase-order",
+      "path": "documents/heldout-other-purchase-order.pdf",
+      "split": "tuning",
+      "template_group": "v1-failed-purchase-order",
+      "expected_label": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic; reused from held-out V1 after result review",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "v2-heldout-bol-rail",
+      "path": "documents/v2-heldout-bol-rail.pdf",
+      "split": "heldout",
+      "template_group": "v2-synthetic-rail-bol",
+      "expected_label": "BOL",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "v2-heldout-bol-intermodal",
+      "path": "documents/v2-heldout-bol-intermodal.pdf",
+      "split": "heldout",
+      "template_group": "v2-synthetic-negotiable-intermodal-bol",
+      "expected_label": "BOL",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "v2-heldout-pod-certificate",
+      "path": "documents/v2-heldout-pod-certificate.pdf",
+      "split": "heldout",
+      "template_group": "v2-synthetic-delivery-completion-certificate",
+      "expected_label": "POD",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "v2-heldout-pod-freight-receipt",
+      "path": "documents/v2-heldout-pod-freight-receipt.pdf",
+      "split": "heldout",
+      "template_group": "v2-synthetic-signed-freight-receipt",
+      "expected_label": "POD",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "v2-heldout-invoice-forwarder",
+      "path": "documents/v2-heldout-invoice-forwarder.pdf",
+      "split": "heldout",
+      "template_group": "v2-synthetic-freight-forwarder-invoice",
+      "expected_label": "INVOICE",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "v2-heldout-invoice-warehouse",
+      "path": "documents/v2-heldout-invoice-warehouse.pdf",
+      "split": "heldout",
+      "template_group": "v2-synthetic-warehouse-logistics-invoice",
+      "expected_label": "INVOICE",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "v2-heldout-other-inspection-certificate",
+      "path": "documents/v2-heldout-other-inspection-certificate.pdf",
+      "split": "heldout",
+      "template_group": "v2-synthetic-quality-inspection-certificate",
+      "expected_label": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "v2-heldout-other-pick-list",
+      "path": "documents/v2-heldout-other-pick-list.pdf",
+      "split": "heldout",
+      "template_group": "v2-synthetic-warehouse-pick-list",
+      "expected_label": "OTHER",
+      "expected_outcome": "ACCEPT",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "v2-heldout-combined-intermodal-delivery",
+      "path": "documents/v2-heldout-combined-intermodal-delivery.pdf",
+      "split": "heldout",
+      "template_group": "v2-synthetic-combined-intermodal-delivery",
+      "expected_label": null,
+      "expected_outcome": "UNCERTAIN_NO_FALLBACK",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    },
+    {
+      "id": "v2-heldout-incomplete-invoice-fragment",
+      "path": "documents/v2-heldout-incomplete-invoice-fragment.pdf",
+      "split": "heldout",
+      "template_group": "v2-synthetic-incomplete-freight-invoice",
+      "expected_label": "INVOICE",
+      "expected_outcome": "ESCALATE",
+      "provenance": "synthetic",
+      "redistribution": "allowed",
+      "used_in_g1": false
+    }
+  ]
+}

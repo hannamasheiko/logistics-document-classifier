@@ -345,7 +345,80 @@ G1 approval freezes these experiment identifiers and makes the minimal contract 
 - `US_Inland_Trucking_Invoice_Filled.pdf`: the three transport-invoice features should be supported by the broker invoice identity, transport-service charge lines, and total/payment terms.
 - `commercial_invoice.pdf`: positive commercial-goods purpose should support `OTHER`; `B/L NO.` and freight/incoterm content must not be mistaken for a BOL or transport-service invoice.
 
-## Candidates not ready as local control inputs
+## Task 2E systematic primary evaluation — GE approved
+
+**Status:** complete. GE was approved by the user on 2026-09-17 with the documented semantic-evidence limitation. Task 3 has not started.
+
+### Corpus and split controls
+
+The V1 manifest contains 12 tuning documents and 10 held-out documents. Tuning includes the four G1 controls and eight synthetic challenge documents. Held-out V1 uses separate synthetic template groups and includes two examples per accepted class, one completed combined BOL/POD document, and one incomplete target document. G1 controls are never held out.
+
+Held-out V1 exposed a narrow prompt/schema defect: the model treated an explicit export packing list and purchase order as having positive non-target purpose but did not mark `non_target_identity`. Both were correctly classified as candidate `OTHER`, yet the frozen rule requires both positive `OTHER` features and therefore escalated them.
+
+The correction is versioned rather than overwriting V1:
+
+- `manifest.json` and both V1 result artifacts remain unchanged as history.
+- `manifest-v2.json` identifies `manifest.json` as its parent.
+- The two failed V1 documents form the complete targeted V2 tuning split.
+- Held-out V2 contains 10 newly generated PDFs with new template groups: two BOL, two POD, two transport/logistics invoices, two non-target documents, one combined BOL/POD document, and one incomplete transport-invoice fragment.
+- The V2 `OTHER` held-out types are a quality-inspection certificate and warehouse pick list. They were not named as examples in the V2 prompt, so they test generalization beyond the targeted packing-list and purchase-order correction.
+
+All redistributable documents are deterministic ReportLab fixtures with text layers. Manifest validation enforces unique IDs, the four-class taxonomy, expected outcome values, redistribution status, and no tuning/held-out template-group overlap. This is a small take-home evaluation set, not a claim of population representativeness.
+
+### Frozen routing settings
+
+- provider / endpoint: `openai` / `responses`
+- model: `gpt-5.4-mini-2026-03-17`
+- request settings: `reasoning=low`, `store=false`, `max_output_tokens=1200`
+- V2 config: `primary-text-evaluation-v2`
+- V2 prompt: `primary-classification-evidence-v2`
+- V2 schema: `primary-classification-evidence-v2`
+- routing rules: `critical-combinations-primary-v1`
+- score method: `critical-feature-coverage-v1`
+- acceptance threshold: `1.0`
+
+The score is the fraction of the candidate class's required critical features marked present after structured-output and source-provenance validation. It is an explainable completeness signal, not a probability. Acceptance requires score `1.0`, exactly one complete class combination, and agreement between that combination and the candidate. Complete BOL plus complete POD returns `UNCERTAIN_NO_FALLBACK`. Multiple complete target classes or contradictions escalate. `OTHER` requires both positive non-target identity and positive non-target primary purpose, with no complete target class. Invalid structured output or invalid evidence after one retry is a technical failure. Model diagnostics remain advisory.
+
+### Correction and held-out history
+
+| Run | Contract used | Calls | Correct accepts | Expected escalations | Correct uncertainty | Unnecessary escalations | Accepted errors | Technical/invalid | Spend |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Tuning V1 initial | V1; before runner redaction fix | 12 | 8 | 3 | 1 | 0 | 0 | 0 | `$0.04077675` |
+| Tuning V1 corrected replay (`tuning-v2.json`) | V1; redacted inputs | 12 | 8 | 3 | 1 | 0 | 0 | 0 | `$0.04409775` |
+| Held-out V1 | V1 | 10 | 6 | 1 | 1 | 2 | 0 | 0 | `$0.03194850` |
+| Targeted tuning V2 | V2 | 2 | 2 | 0 | 0 | 0 | 0 | 0 | `$0.00619425` |
+| Held-out V2 | V2 | 10 | 8 | 1 | 1 | 0 | 0 | 0 | `$0.03187800` |
+
+The initial tuning runner omitted the Task 1 payment-identifier redaction step. The four user-supplied control requests may therefore have included five identifiers that the established local redactor masks. The API requests used `store=false`; the local result did not reproduce those values as evidence. The runner was corrected before the canonical V1 tuning replay and both held-out runs. Regression coverage verifies masking before model input. The initial run remains disclosed in the history and is not treated as the canonical tuning result.
+
+The targeted correction succeeded on both prior failures. Each produced candidate `OTHER`, both required non-target features, score `1.0`, and `ACCEPT`, with no retry or diagnostic. Held-out V2 then completed 10/10 calls without retries or technical failures:
+
+- two BOL, two POD, two INVOICE, and two OTHER documents were correctly accepted;
+- the incomplete invoice fragment correctly escalated with score `1/3`;
+- the completed combined BOL/POD document produced both complete combinations and correctly returned `UNCERTAIN_NO_FALLBACK`;
+- there were no accepted label errors, unnecessary escalations, or incorrect uncertainty results.
+
+Held-out V2 used 23,334 input tokens and 3,195 output tokens, including 389 reasoning tokens. Total recorded latency was 24.296 seconds: mean 2.430, minimum 1.619, and maximum 3.505 seconds. Spend was `$0.031878` against the separately approved `$0.05` held-out V2 guardrail. Across all disclosed Task 2E live runs, including the superseded pre-redaction tuning run and the failed V1 held-out, estimated spend was `$0.15489525`.
+
+Sanitized review artifacts are stored in `evaluation/results/`; raw local results remain ignored under `evaluation/local-results/` because they contain source evidence and provider execution metadata.
+
+### Manual semantic evidence audit
+
+All present evidence strings passed exact or accepted continuous-source provenance validation. Manual review still found a limitation that provenance validation cannot detect:
+
+- On both accepted V2 BOL documents, the document as a whole supports `bol_shipment_structure`, but the selected evidence snippet names only the shipper. The snippet alone does not prove the required combined carrier/route/cargo structure.
+- Both accepted POD documents also marked the non-candidate `bol_shipment_structure` feature present using a carrier-only snippet. This did not participate in the POD acceptance decision.
+- No contradictory evidence finding changed an accepted result, and no expected accepted document lacked its complete candidate combination.
+
+The first finding affects the quality of evidence presented for a required accepted feature, although the feature status and final label are semantically correct when checked against the whole PDF. Task 3 should preserve the normalized observations and routing result, while UI wording must not claim that one displayed snippet independently proves a composite feature. A future evidence contract could allow multiple snippets for composite observations; that is not required to integrate the agreed V1 routing rule and is not introduced silently here.
+
+### GE recommendation and limits
+
+The V2 result supports freezing the settings above as the initial Task 3 primary routing contract. The correction fixed the specific V1 failure and generalized to two unseen non-target document types without changing routing rules or threshold. The clean 10-document held-out outcome demonstrates the intended behaviors on this bounded corpus.
+
+GE acceptance must retain these limits: the corpus is small and predominantly synthetic; it does not establish calibrated confidence, population accuracy, OCR behavior, visual fallback behavior, or reliability across arbitrary layouts. Exact evidence provenance does not guarantee semantic sufficiency, as the composite BOL evidence audit shows. Fallback and extraction remain separate future gates.
+
+## G1 appendix: candidates not ready as local control inputs
 
 | Source | Expected use | Why not included in the ready set |
 |---|---|---|
@@ -354,11 +427,11 @@ G1 approval freezes these experiment identifiers and makes the minimal contract 
 | [UPS US Rate and Service Guide, 2003](https://www.ups.com/media/en/service_guide_03_us_daily.pdf) | Reference for a transport-service `INVOICE` | PDF page 148 (printed page 146) embeds illustrative invoices alongside explanatory material. The 163-page guide is not an invoice input; extracting that whole page would retain instructions and overlapping samples. Historical official sample, not a real standalone customer invoice. Excluded from classification controls. |
 | [FedEx Custom Critical combined form](https://www.fedex.com/content/dam/fedex/us-united-states/shipping/images/BillofLading.pdf) | Candidate for established BOL/POD ambiguity → `UNCERTAIN`, no fallback | Official blank combined form identified in earlier research. Direct download returned HTML rather than a PDF; not locally verified or included. Do not assume this blank form demonstrates a completed delivery. |
 
-## Source and redistribution boundary
+## G1 appendix: source and redistribution boundary
 
-The two blank forms are downloadable from official organizational domains. The four selected filled controls were supplied locally by the user; their redistribution permission and original publication provenance have not been established. Keep all source PDFs and extracted text out of Git and do not claim that they are redistributable. Nothing has been uploaded to an LLM API. This is a provenance/permission-status record, not a legal conclusion.
+The two blank forms are downloadable from official organizational domains. The four selected filled controls were supplied locally by the user; their redistribution permission and original publication provenance have not been established. Keep all source PDFs and extracted text out of Git and do not claim that they are redistributable. Later approved G1 and Task 2E calls sent extracted text to the model API as documented above; the source PDFs remained local. This is a provenance/permission-status record, not a legal conclusion.
 
-## Checks, corrections, and next decision
+## G1 appendix: source-selection checks
 
 - Confirmed actual PDF signatures before extraction: two FedEx downloads instead contained HTML and were rejected, despite successful HTTP transfer.
 - Union Pacific and UPS controls have one page each and are below the agreed size/page limits.
@@ -366,4 +439,4 @@ The two blank forms are downloadable from official organizational domains. The f
 - The user accepted the blank forms as supplemental first-probe controls and supplied filled examples. The selected four-document text-layer subset covers every agreed class once, but it does not establish representative coverage or routing reliability.
 - The JSONL corpus was re-read successfully after generation; expected-class order, record count, page counts, and page arrays were checked. Five payment identifiers were masked.
 
-No manifest or tuning/held-out split is created at this step. Across the approved calls, all four controls received the expected candidate class. The local deterministic experiment accepts POD, INVOICE, and OTHER and escalates BOL because of invalid evidence provenance. Candidate ratios are `1.0` for every control, so no numerical threshold or final score is selected. No further API call has been authorized or executed.
+At this G1 source-selection step, no manifest or tuning/held-out split had been created. The later Task 2E section records the approved evaluation calls, versioned manifests, routing decision, and held-out results that supersede this checkpoint without deleting its history.
