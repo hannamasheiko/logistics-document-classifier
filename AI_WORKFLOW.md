@@ -200,3 +200,13 @@ We separately worked through, in detail, what exactly happens on a contradiction
 For the examples, AI determined the expected field values itself by reading the actual text of already-approved documents (no model call involved), and added one new synthetic BOL built specifically for the contradiction case, since none of the existing examples covered it.
 
 At the start of Task 7, 0% of the 5-hour allowance and roughly 15% of the weekly allowance had been used; at the time of this entry — 30% 5-hour and 18% weekly (i.e., 30 percentage points of the 5-hour allowance and 3 points of the weekly one spent on the task itself).
+
+## Task 8 — implementing planned extraction (G3 in code)
+
+Task 8 was mostly coding: G3 had already been negotiated in such detail during Task 7 that there was almost no new decision left to make here — just carrying the contract over into `documents/ai/extraction.py`, following the same TDD order as Task 3/6.
+
+AI found and fixed a real bug on its own while writing the tests: the shared retry mechanism for OpenAI calls (already written back in Task 6) only recognized two specific validation-error types, and the new error type for extraction simply passed straight through it, breaking the retry logic. Fixed with a shared base exception class.
+
+At the end, I confirmed it with a live run of all 5 examples prepared in Task 7 against the real API: all 27 expected field values matched exactly, including the "trap" case (a placeholder instead of a real value) and the contradiction case.
+
+At the start of Task 8, 30% of the 5-hour allowance and 18% of the weekly allowance had been used; at the time of this entry — 55% 5-hour and 21% weekly (i.e., 25 percentage points of the 5-hour allowance and 3 points of the weekly one spent on the task itself).
