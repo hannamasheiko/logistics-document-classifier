@@ -41,5 +41,3 @@ experiments/local-results/
 # Local Task 2E live results before sanitized review artifacts
 evaluation/local-results/
 
-# Local raw Codex session archive
-.ai-history/
