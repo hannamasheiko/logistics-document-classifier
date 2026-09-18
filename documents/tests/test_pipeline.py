@@ -296,6 +296,39 @@ class PipelineTests(TestCase):
         self.assertEqual(result.status, ProcessingAttempt.Status.FAILED)
         self.assertEqual(result.failure_category, "configuration_failure")
 
+    def test_client_initialization_failure_marks_attempt_failed(self) -> None:
+        attempt = self.make_attempt("bol.pdf", make_text_pdf(BOL_LINES))
+
+        with patch(
+            "documents.services.processing.build_default_request",
+            side_effect=RuntimeError("client setup failed"),
+        ):
+            result = run_classification(attempt)
+
+        attempt.refresh_from_db()
+        self.assertEqual(result.status, ProcessingAttempt.Status.FAILED)
+        self.assertEqual(attempt.status, ProcessingAttempt.Status.FAILED)
+        self.assertEqual(attempt.failure_stage, "classification")
+        self.assertEqual(attempt.failure_category, "configuration_failure")
+        self.assertNotIn("client setup failed", attempt.failure_reason)
+
+    def test_unexpected_primary_error_marks_attempt_failed(self) -> None:
+        attempt = self.make_attempt("bol.pdf", make_text_pdf(BOL_LINES))
+
+        result = run_classification(
+            attempt,
+            request=lambda parameters: (_ for _ in ()).throw(
+                TypeError("unexpected response shape")
+            ),
+        )
+
+        attempt.refresh_from_db()
+        self.assertEqual(result.status, ProcessingAttempt.Status.FAILED)
+        self.assertEqual(attempt.status, ProcessingAttempt.Status.FAILED)
+        self.assertEqual(attempt.failure_stage, "classification")
+        self.assertEqual(attempt.failure_category, "unexpected_error")
+        self.assertNotIn("unexpected response shape", attempt.failure_reason)
+
     # --- Planned field extraction (Task 8) ---
 
     def test_accepted_bol_includes_completed_extraction_result(self) -> None:
@@ -339,6 +372,34 @@ class PipelineTests(TestCase):
         self.assertEqual(result.extraction_status, ProcessingAttempt.ExtractionStatus.UNAVAILABLE)
         self.assertEqual(result.extraction_failure_category, "technical_failure")
         self.assertIsNone(result.extraction_result)
+
+    def test_unexpected_extraction_error_preserves_accepted_classification(self) -> None:
+        attempt = self.make_attempt("bol.pdf", make_text_pdf(BOL_LINES))
+        observations = make_observations("BOL", BOL_EVIDENCE)
+
+        def extraction_response(class_name):
+            raise TypeError("unexpected extraction response shape")
+
+        request, _calls = make_dual_request(
+            lambda: completed_response(observations),
+            extraction_response=extraction_response,
+        )
+
+        result = run_classification(attempt, request=request)
+
+        attempt.refresh_from_db()
+        self.assertEqual(result.status, ProcessingAttempt.Status.ACCEPTED)
+        self.assertEqual(attempt.status, ProcessingAttempt.Status.ACCEPTED)
+        self.assertEqual(attempt.accepted_label, ProcessingAttempt.Label.BOL)
+        self.assertEqual(
+            attempt.extraction_status,
+            ProcessingAttempt.ExtractionStatus.UNAVAILABLE,
+        )
+        self.assertEqual(attempt.extraction_failure_category, "unexpected_error")
+        self.assertNotIn(
+            "unexpected extraction response shape",
+            attempt.extraction_failure_reason,
+        )
 
     def test_accepted_other_never_runs_extraction(self) -> None:
         attempt = self.make_attempt("other.pdf", make_text_pdf(OTHER_LINES))
@@ -510,6 +571,28 @@ class PipelineTests(TestCase):
         # Task 6 requirement: fallback failure preserves the primary result for diagnostics.
         self.assertEqual(result.primary_observations, primary_observations)
         self.assertIsNotNone(result.primary_metadata)
+
+    def test_unexpected_visual_fallback_error_marks_attempt_failed(self) -> None:
+        attempt = self.make_attempt(
+            "fragment.pdf",
+            make_text_pdf(INVOICE_FRAGMENT_LINES),
+        )
+        primary_observations = make_observations("INVOICE", INVOICE_FRAGMENT_EVIDENCE)
+
+        def request(parameters):
+            if isinstance(parameters["input"], str):
+                return completed_response(primary_observations)
+            raise TypeError("unexpected visual response shape")
+
+        result = run_classification(attempt, request=request)
+
+        attempt.refresh_from_db()
+        self.assertEqual(result.status, ProcessingAttempt.Status.FAILED)
+        self.assertEqual(attempt.status, ProcessingAttempt.Status.FAILED)
+        self.assertEqual(attempt.failure_stage, "visual_fallback")
+        self.assertEqual(attempt.failure_category, "unexpected_error")
+        self.assertEqual(attempt.primary_observations, primary_observations)
+        self.assertNotIn("unexpected visual response shape", attempt.failure_reason)
 
 
 EVALUATION_DOCUMENTS = Path(__file__).resolve().parent.parent.parent / "evaluation" / "documents"

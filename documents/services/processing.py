@@ -35,7 +35,17 @@ def run_classification(attempt: ProcessingAttempt, request=None) -> ProcessingAt
         )
         return attempt
 
-    request = request or build_default_request()
+    if request is None:
+        try:
+            request = build_default_request()
+        except Exception:
+            _mark_failed(
+                attempt,
+                stage="classification",
+                category="configuration_failure",
+                reason="The classification client could not be initialized.",
+            )
+            return attempt
 
     if not document_text.strip():
         # Neither native text nor OCR found anything anywhere in the
@@ -48,6 +58,9 @@ def run_classification(attempt: ProcessingAttempt, request=None) -> ProcessingAt
 
     try:
         primary_outcome = classification.classify_document_text(document_text, request)
+        primary_routing = routing.evaluate_routing(primary_outcome["observations"])
+        attempt.primary_observations = primary_outcome["observations"]
+        attempt.primary_metadata = {**primary_outcome["metadata"], "routing": primary_routing}
     except ClassificationFailure as failure:
         _mark_failed(
             attempt,
@@ -57,10 +70,14 @@ def run_classification(attempt: ProcessingAttempt, request=None) -> ProcessingAt
             primary_metadata={"attempts": failure.attempts},
         )
         return attempt
-
-    primary_routing = routing.evaluate_routing(primary_outcome["observations"])
-    attempt.primary_observations = primary_outcome["observations"]
-    attempt.primary_metadata = {**primary_outcome["metadata"], "routing": primary_routing}
+    except Exception:
+        _mark_failed(
+            attempt,
+            stage="classification",
+            category="unexpected_error",
+            reason="Primary classification failed unexpectedly.",
+        )
+        return attempt
 
     if primary_routing["action"] == "ACCEPT":
         _accept(attempt, primary_routing, request, document_text=document_text)
@@ -91,6 +108,9 @@ def _run_visual_fallback(attempt: ProcessingAttempt, request) -> ProcessingAttem
 
     try:
         fallback_outcome = classification.classify_document_images(images, request)
+        fallback_routing = routing.evaluate_routing(fallback_outcome["observations"])
+        attempt.fallback_observations = fallback_outcome["observations"]
+        attempt.fallback_metadata = {**fallback_outcome["metadata"], "routing": fallback_routing}
     except ClassificationFailure as failure:
         _mark_failed(
             attempt,
@@ -100,10 +120,14 @@ def _run_visual_fallback(attempt: ProcessingAttempt, request) -> ProcessingAttem
             fallback_metadata={"attempts": failure.attempts},
         )
         return attempt
-
-    fallback_routing = routing.evaluate_routing(fallback_outcome["observations"])
-    attempt.fallback_observations = fallback_outcome["observations"]
-    attempt.fallback_metadata = {**fallback_outcome["metadata"], "routing": fallback_routing}
+    except Exception:
+        _mark_failed(
+            attempt,
+            stage="visual_fallback",
+            category="unexpected_error",
+            reason="Visual fallback failed unexpectedly.",
+        )
+        return attempt
 
     if fallback_routing["action"] == "ACCEPT":
         _accept(attempt, fallback_routing, request, images=images)
@@ -163,6 +187,11 @@ def _run_extraction(
         attempt.extraction_failure_category = failure.category
         attempt.extraction_failure_reason = f"Field extraction failed: {failure.category}."
         attempt.extraction_metadata = {"attempts": failure.attempts}
+        return
+    except Exception:
+        attempt.extraction_status = ProcessingAttempt.ExtractionStatus.UNAVAILABLE
+        attempt.extraction_failure_category = "unexpected_error"
+        attempt.extraction_failure_reason = "Field extraction failed unexpectedly."
         return
 
     attempt.extraction_status = ProcessingAttempt.ExtractionStatus.COMPLETED
