@@ -186,3 +186,17 @@ The most valuable part of this task happened during live browser verification, n
 After these fixes, the live check passed all three scenarios: a scanned document where OCR produced pure garbage, but the visual fallback correctly read the image and accepted the right class; a text document with incomplete evidence, where the fallback honestly confirmed uncertainty instead of making up an answer; and an established BOL/POD ambiguity, which correctly did not trigger the fallback at all.
 
 At the start of Task 6, 39% of the 5-hour allowance and 8% of the weekly allowance had been used; at the time of this entry — 82% 5-hour and 14% weekly (i.e., 43 percentage points of the 5-hour allowance and 6 points of the weekly one spent on the task itself — noticeably more than on previous tasks, largely because of live-diagnosing unexpected problems on the model provider's side).
+
+## Task 7 — the field-extraction contract (G3)
+
+Task 7 was another design checkpoint (G3), like Task 1 and Task 5 before it: no code in `documents/`, just an agreed document and a handful of hand-prepared examples. This is exactly the part of the assignment the employer had originally marked as optional — field extraction with confidence for individual fields.
+
+Most of the time went into discussing the field set. I asked whether it was worth adding `destination`/the delivery address for BOL and POD — I wasn't sure whether that was useful or already excessive. AI tied it back to the classification feature `bol_shipment_structure`, already frozen back in Task 3, which already requires origin/destination as part of the definition of a BOL — so this wasn't a new "just in case" field, but an already-recognized core fact that simply hadn't been stored separately before. I agreed to add it to both classes.
+
+Next we went through the validators for identifiers (BOL number, tracking number, invoice number) in detail. I immediately warned AI against inventing format-specific rules — I pointed out that even Meest's and Nova Poshta's tracking numbers look completely different from each other, so any "universal" rule would in practice be fitted to our handful of examples rather than to reality. We settled on a minimal check: not empty, and not implausibly long text.
+
+We separately worked through, in detail, what exactly happens on a contradiction (for example, when shipper and consignee in a BOL match). I wanted to fully understand the mechanics: does the system pick the "correct" value, or does anything change in the classification itself. We agreed that both values stay stored as they are, both fields' confidence drops to zero, the contradiction is shown explicitly — and none of it touches the document's already-accepted classification in any way.
+
+For the examples, AI determined the expected field values itself by reading the actual text of already-approved documents (no model call involved), and added one new synthetic BOL built specifically for the contradiction case, since none of the existing examples covered it.
+
+At the start of Task 7, 0% of the 5-hour allowance and roughly 15% of the weekly allowance had been used; at the time of this entry — 30% 5-hour and 18% weekly (i.e., 30 percentage points of the 5-hour allowance and 3 points of the weekly one spent on the task itself).
