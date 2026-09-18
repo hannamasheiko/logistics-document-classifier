@@ -94,6 +94,13 @@ no accounts); each result links to the stored original PDF. When a visual
 fallback was used, the result page says so and shows which path produced the
 accepted label.
 
+For an `ACCEPTED` `BOL`/`POD`/`INVOICE` (never `OTHER`), the result page also
+shows extracted fields (value, status, evidence, confidence) per the Task
+7/G3 contract (`docs/decisions/field-extraction-contract.md`). A field-level
+contradiction (e.g. identical shipper/consignee) is shown explicitly, not
+hidden behind a score; an extraction technical failure is reported
+separately and never changes the classification above it.
+
 ## Current limitations
 
 - The routing score is an evidence-completeness signal for the candidate

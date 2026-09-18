@@ -44,6 +44,21 @@ class ProcessingAttempt(models.Model):
     failure_category = models.CharField(max_length=100, null=True, blank=True)
     failure_reason = models.TextField(null=True, blank=True)
 
+    class ExtractionStatus(models.TextChoices):
+        NOT_APPLICABLE = "NOT_APPLICABLE", "Not applicable"
+        COMPLETED = "COMPLETED", "Completed"
+        UNAVAILABLE = "UNAVAILABLE", "Unavailable"
+
+    extraction_status = models.CharField(
+        max_length=20,
+        choices=ExtractionStatus.choices,
+        default=ExtractionStatus.NOT_APPLICABLE,
+    )
+    extraction_result = models.JSONField(null=True, blank=True)
+    extraction_metadata = models.JSONField(null=True, blank=True)
+    extraction_failure_category = models.CharField(max_length=100, null=True, blank=True)
+    extraction_failure_reason = models.TextField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

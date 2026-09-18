@@ -1,13 +1,17 @@
 """Synchronous attempt lifecycle: text extraction, primary classification,
-routing, and (Task 6) one visual fallback escalation.
+routing, (Task 6) one visual fallback escalation, and (Task 8) planned field
+extraction for an accepted result.
 
 DB writes happen only before and after each external OpenAI call, never
 around it. At most one visual fallback call per attempt: fallback routing
-may only ACCEPT or end as UNCERTAIN, it never escalates further.
+may only ACCEPT or end as UNCERTAIN, it never escalates further. Field
+extraction (Task 7/G3) only ever runs for an ACCEPTED result and never
+changes that result if it fails.
 """
 
-from documents.ai import classification
+from documents.ai import classification, extraction
 from documents.ai.classification import ClassificationFailure
+from documents.ai.extraction import ExtractionFailure
 from documents.models import ProcessingAttempt
 from documents.services import routing
 from documents.services.pdf import extract_text, render_all_pages
@@ -59,7 +63,7 @@ def run_classification(attempt: ProcessingAttempt, request=None) -> ProcessingAt
     attempt.primary_metadata = {**primary_outcome["metadata"], "routing": primary_routing}
 
     if primary_routing["action"] == "ACCEPT":
-        _accept(attempt, primary_routing)
+        _accept(attempt, primary_routing, request, document_text=document_text)
         return attempt
 
     if primary_routing["action"] == "UNCERTAIN_NO_FALLBACK":
@@ -102,7 +106,7 @@ def _run_visual_fallback(attempt: ProcessingAttempt, request) -> ProcessingAttem
     attempt.fallback_metadata = {**fallback_outcome["metadata"], "routing": fallback_routing}
 
     if fallback_routing["action"] == "ACCEPT":
-        _accept(attempt, fallback_routing)
+        _accept(attempt, fallback_routing, request, images=images)
     else:
         # ESCALATE or UNCERTAIN_NO_FALLBACK from the fallback both end as
         # UNCERTAIN: fallback routing may only accept or end uncertain, it
@@ -112,12 +116,58 @@ def _run_visual_fallback(attempt: ProcessingAttempt, request) -> ProcessingAttem
     return attempt
 
 
-def _accept(attempt: ProcessingAttempt, routing_result: dict) -> None:
+def _accept(
+    attempt: ProcessingAttempt,
+    routing_result: dict,
+    request,
+    *,
+    document_text: str | None = None,
+    images=None,
+) -> None:
     attempt.status = ProcessingAttempt.Status.ACCEPTED
     attempt.accepted_label = routing_result["candidate_class"]
     attempt.routing_score = routing_result["routing_score"]
     attempt.score_method = routing_result["score_method"]
+    _run_extraction(
+        attempt,
+        routing_result["candidate_class"],
+        request,
+        document_text=document_text,
+        images=images,
+    )
     attempt.save()
+
+
+def _run_extraction(
+    attempt: ProcessingAttempt,
+    class_name: str,
+    request,
+    *,
+    document_text: str | None,
+    images,
+) -> None:
+    """Extraction reuses whichever context already produced the ACCEPTED
+    result (Task 7/G3 execution rule). A failure here is recorded on the
+    attempt's own extraction_* fields and never touches the classification
+    status/label already set by the caller. OTHER has no extraction schema
+    (G3): extraction_status stays at its NOT_APPLICABLE default."""
+    if class_name == "OTHER":
+        return
+
+    try:
+        outcome = extraction.extract_fields(
+            class_name, request, document_text=document_text, images=images
+        )
+    except ExtractionFailure as failure:
+        attempt.extraction_status = ProcessingAttempt.ExtractionStatus.UNAVAILABLE
+        attempt.extraction_failure_category = failure.category
+        attempt.extraction_failure_reason = f"Field extraction failed: {failure.category}."
+        attempt.extraction_metadata = {"attempts": failure.attempts}
+        return
+
+    attempt.extraction_status = ProcessingAttempt.ExtractionStatus.COMPLETED
+    attempt.extraction_result = outcome["fields"]
+    attempt.extraction_metadata = outcome["metadata"]
 
 
 def _uncertain(attempt: ProcessingAttempt, routing_result: dict) -> None:

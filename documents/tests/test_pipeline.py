@@ -16,6 +16,7 @@ from documents.ai.classification import (
     NonRetryableRequestFailure,
     RetryableRequestFailure,
 )
+from documents.ai.extraction import FIELD_DEFINITIONS
 from documents.forms import DocumentUploadForm
 from documents.models import ProcessingAttempt
 from documents.services.pdf import extract_text
@@ -77,14 +78,40 @@ def completed_response(observations: dict) -> dict:
     }
 
 
-def make_dual_request(primary_response, visual_response=None):
+def default_extraction_payload(class_name: str) -> dict:
+    return {
+        field_name: {"status": "missing", "value": None, "evidence": None}
+        for field_name in FIELD_DEFINITIONS[class_name]
+    }
+
+
+def extraction_class_for(parameters: dict) -> str | None:
+    """Returns the class name if `parameters` is a field-extraction call
+    (text or visual), identified by its schema name, else None."""
+    format_name = parameters["text"]["format"]["name"]
+    if format_name.startswith("field_extraction_"):
+        return format_name.removeprefix("field_extraction_").upper()
+    return None
+
+
+def make_dual_request(primary_response, visual_response=None, extraction_response=None):
     """Fake OpenAI boundary that dispatches on call shape: primary text calls
     use a plain string `input`; visual fallback calls use a list of content
     parts (see `documents.ai.classification.build_visual_request_parameters`).
+    Extraction calls (text or visual context) are detected by their schema
+    name and default to an all-`missing` stub unless `extraction_response`
+    is given, so tests that accept a document but don't care about
+    extraction don't also have to fake it.
     """
-    calls = {"primary": [], "visual": []}
+    calls = {"primary": [], "visual": [], "extraction": []}
 
     def request(parameters):
+        extraction_class = extraction_class_for(parameters)
+        if extraction_class is not None:
+            calls["extraction"].append(parameters)
+            if extraction_response is not None:
+                return extraction_response(extraction_class)
+            return completed_response(default_extraction_payload(extraction_class))
         if isinstance(parameters["input"], str):
             calls["primary"].append(parameters)
             return primary_response()
@@ -137,15 +164,11 @@ class PipelineTests(TestCase):
     def test_accepted_bol(self) -> None:
         attempt = self.make_attempt("bol.pdf", make_text_pdf(BOL_LINES))
         observations = make_observations("BOL", BOL_EVIDENCE)
-        calls = []
-
-        def request(parameters):
-            calls.append(parameters)
-            return completed_response(observations)
+        request, calls = make_dual_request(lambda: completed_response(observations))
 
         result = run_classification(attempt, request=request)
 
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(len(calls["primary"]), 1)
         self.assertEqual(result.status, ProcessingAttempt.Status.ACCEPTED)
         self.assertEqual(result.accepted_label, ProcessingAttempt.Label.BOL)
         self.assertEqual(result.routing_score, 1.0)
@@ -272,6 +295,105 @@ class PipelineTests(TestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual(result.status, ProcessingAttempt.Status.FAILED)
         self.assertEqual(result.failure_category, "configuration_failure")
+
+    # --- Planned field extraction (Task 8) ---
+
+    def test_accepted_bol_includes_completed_extraction_result(self) -> None:
+        attempt = self.make_attempt("bol.pdf", make_text_pdf(BOL_LINES))
+        observations = make_observations("BOL", BOL_EVIDENCE)
+        extraction_payload = {
+            **default_extraction_payload("BOL"),
+            "bol_number": {"status": "present", "value": "BOL-1", "evidence": "BILL OF LADING"},
+        }
+        request, calls = make_dual_request(
+            lambda: completed_response(observations),
+            extraction_response=lambda class_name: completed_response(extraction_payload),
+        )
+
+        result = run_classification(attempt, request=request)
+
+        self.assertEqual(len(calls["extraction"]), 1)
+        self.assertEqual(result.extraction_status, ProcessingAttempt.ExtractionStatus.COMPLETED)
+        self.assertEqual(result.extraction_result["bol_number"]["value"], "BOL-1")
+        self.assertEqual(result.extraction_result["bol_number"]["confidence"], 1.0)
+        self.assertIsNone(result.extraction_result["carrier"]["confidence"])
+
+    def test_extraction_failure_does_not_change_accepted_classification(self) -> None:
+        attempt = self.make_attempt("bol.pdf", make_text_pdf(BOL_LINES))
+        observations = make_observations("BOL", BOL_EVIDENCE)
+
+        def extraction_response(class_name):
+            raise RetryableRequestFailure("technical_failure")
+
+        request, calls = make_dual_request(
+            lambda: completed_response(observations),
+            extraction_response=extraction_response,
+        )
+
+        result = run_classification(attempt, request=request)
+
+        self.assertEqual(len(calls["extraction"]), 2)  # one retry, per the agreed policy
+        # Task 8 requirement: extraction failure never changes the classification already set.
+        self.assertEqual(result.status, ProcessingAttempt.Status.ACCEPTED)
+        self.assertEqual(result.accepted_label, ProcessingAttempt.Label.BOL)
+        self.assertEqual(result.extraction_status, ProcessingAttempt.ExtractionStatus.UNAVAILABLE)
+        self.assertEqual(result.extraction_failure_category, "technical_failure")
+        self.assertIsNone(result.extraction_result)
+
+    def test_accepted_other_never_runs_extraction(self) -> None:
+        attempt = self.make_attempt("other.pdf", make_text_pdf(OTHER_LINES))
+        observations = make_observations("OTHER", OTHER_EVIDENCE)
+        request, calls = make_dual_request(lambda: completed_response(observations))
+
+        result = run_classification(attempt, request=request)
+
+        self.assertEqual(result.status, ProcessingAttempt.Status.ACCEPTED)
+        self.assertEqual(len(calls["extraction"]), 0)
+        self.assertEqual(result.extraction_status, ProcessingAttempt.ExtractionStatus.NOT_APPLICABLE)
+
+    def test_uncertain_result_never_runs_extraction(self) -> None:
+        attempt = self.make_attempt(
+            "fragment.pdf",
+            make_text_pdf(INVOICE_FRAGMENT_LINES),
+        )
+        observations = make_observations("INVOICE", INVOICE_FRAGMENT_EVIDENCE)
+        request, calls = make_dual_request(
+            lambda: completed_response(observations),
+            lambda: completed_response(observations),
+        )
+
+        result = run_classification(attempt, request=request)
+
+        self.assertEqual(result.status, ProcessingAttempt.Status.UNCERTAIN)
+        self.assertEqual(len(calls["extraction"]), 0)
+        self.assertEqual(result.extraction_status, ProcessingAttempt.ExtractionStatus.NOT_APPLICABLE)
+
+    def test_visual_fallback_accept_extracts_from_images(self) -> None:
+        attempt = self.make_attempt(
+            "fragment.pdf",
+            make_text_pdf(INVOICE_FRAGMENT_LINES),
+        )
+        primary_observations = make_observations("INVOICE", INVOICE_FRAGMENT_EVIDENCE)
+        visual_observations = make_observations(
+            "BOL",
+            evidence_by_feature={
+                "bol_identity": "heading reads BILL OF LADING",
+                "bol_transport_obligation": "carrier received goods for transport",
+                "bol_shipment_structure": "lists shipper, consignee, carrier, cargo",
+            },
+        )
+        request, calls = make_dual_request(
+            lambda: completed_response(primary_observations),
+            lambda: completed_response(visual_observations),
+        )
+
+        result = run_classification(attempt, request=request)
+
+        self.assertEqual(len(calls["extraction"]), 1)
+        # extraction reused the visual context (a list of image parts), not the text context
+        self.assertIsInstance(calls["extraction"][0]["input"], list)
+        self.assertEqual(result.extraction_status, ProcessingAttempt.ExtractionStatus.COMPLETED)
+        self.assertEqual(result.extraction_metadata["context"], "visual")
 
     # --- Visual fallback (Task 6) ---
 

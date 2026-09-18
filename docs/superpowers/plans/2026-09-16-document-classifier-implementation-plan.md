@@ -322,19 +322,28 @@ Processing розрізняє initial rejection і technical failure після 
 
 ## Task 8: Planned extraction у збереженому result flow
 
+**Status:** complete.
+
 **Files:** create `documents/ai/extraction.py`, `documents/ai/prompts/extraction.txt`, `documents/tests/test_extraction.py`; modify `documents/models.py`, migration, `documents/services/processing.py`, result template та evaluation command.
 
 **Consumes:** погоджений G3 contract і його expected examples. **Produces:** persisted/displayed structured value/status/evidence, validation details та explainable field-confidence без зміни accepted classification при extraction failure.
 
-- [ ] Написати tests для погодженого schema: valid value/evidence, missing і unclear status, wrong semantic role, contradiction, evidence absent, invalid response та technical failure. Expected values брати з G3 examples; окремо перевірити, що extraction failure не змінює accepted classification.
-- [ ] Запустити tests до implementation, перевірити relevant failures.
-- [ ] Реалізувати один погоджений structured extraction flow і parsing без нового provider abstraction або runtime вибору між alternative models/input strategies; додати evidence checks, deterministic validators і score тільки в обсязі G3.
-- [ ] Додати migration/persistence representation та result UI; score label чесно пояснює метод, не обіцяє 100% correctness.
-- [ ] Перевірити restart/reopen result: поля, confidence та original PDF доступні з history.
-- [ ] Запустити `python manage.py migrate`, `python manage.py test documents.tests`; виконати кілька погоджених G3 expected examples і core regression evaluation. Окремо звітувати про extraction errors і будь-які зміни classification/routing; окремий tuning/held-out extraction run не потрібний.
-- [ ] Переконатися, що G3 extraction failure behavior не переписує core classification всупереч погодженому правилу; подати користувачу фактичні результати stage.
+- [x] Написати tests для погодженого schema: valid value/evidence, missing і unclear status, wrong semantic role, contradiction, evidence absent, invalid response та technical failure. Expected values брати з G3 examples; окремо перевірити, що extraction failure не змінює accepted classification.
+- [x] Запустити tests до implementation, перевірити relevant failures.
+- [x] Реалізувати один погоджений structured extraction flow і parsing без нового provider abstraction або runtime вибору між alternative models/input strategies; додати evidence checks, deterministic validators і score тільки в обсязі G3.
+- [x] Додати migration/persistence representation та result UI; score label чесно пояснює метод, не обіцяє 100% correctness.
+- [x] Перевірити restart/reopen result: поля, confidence та original PDF доступні з history.
+- [x] Запустити `python manage.py migrate`, `python manage.py test documents.tests`; виконати кілька погоджених G3 expected examples і core regression evaluation. Окремо звітувати про extraction errors і будь-які зміни classification/routing; окремий tuning/held-out extraction run не потрібний.
+- [x] Переконатися, що G3 extraction failure behavior не переписує core classification всупереч погодженому правилу; подати користувачу фактичні результати stage.
 
 **Milestone 3:** вузький planned extraction integrated; value/status/evidence, validators, explainable score та failure isolation перевірені на expected examples, mandatory core не регресував.
+
+### Task 8 verification record
+
+- `python manage.py migrate`, `manage.py check`, `manage.py makemigrations --check --dry-run` та `python manage.py test documents.tests` → **78/78 passed** (24 нових extraction-тестів + 5 нових pipeline-інтеграційних тестів + 3 нових view-тести).
+- Живий прогін усіх 5 прикладів [evaluation/manifest-extraction.json](../../../evaluation/manifest-extraction.json) через продакшн `extraction.extract_fields`: **27/27 очікуваних значень полів співпали точно**, 5 реальних викликів, 0 retries — включно з правильним `unclear` для wrong-semantic-role плейсхолдера і правильним contradiction (confidence 0.0 з обох боків, обидва значення збережені).
+- Окремо перевірено (fake boundary): extraction failure ніколи не змінює вже прийняте `ACCEPTED`/`accepted_label`; `OTHER` і `UNCERTAIN` ніколи не запускають extraction; fallback-прийняті документи витягують поля із зображень (`visual` context), primary-прийняті — з тексту.
+- **Відхилення від файлового списку плану:** "evaluation command" не модифікувалась — такої команди ще не існує (`documents/management/commands/evaluate_documents.py` — це явно Task 9). Команду створюю саме там, за розкладом.
 
 ## Task 9: Delivery evaluation, reviewer quickstart та review gate
 

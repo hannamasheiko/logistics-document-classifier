@@ -9,11 +9,14 @@ from django.urls import reverse
 from documents.ai.classification import RetryableRequestFailure
 from documents.models import ProcessingAttempt
 from documents.tests.test_pipeline import (
+    BOL_EVIDENCE,
+    BOL_LINES,
     INVOICE_FRAGMENT_EVIDENCE,
     INVOICE_FRAGMENT_LINES,
     OTHER_EVIDENCE,
     OTHER_LINES,
     completed_response,
+    default_extraction_payload,
     make_dual_request,
     make_image_only_pdf,
     make_observations,
@@ -161,3 +164,68 @@ class ViewTests(TestCase):
         self.assertEqual(attempt.accepted_label, ProcessingAttempt.Label.BOL)
         self.assertContains(response, "Accepted label")
         self.assertContains(response, "Bill of lading")
+
+    def test_extracted_fields_table_is_shown_on_the_result_page(self) -> None:
+        observations = make_observations("BOL", BOL_EVIDENCE)
+        extraction_payload = {
+            **default_extraction_payload("BOL"),
+            "bol_number": {"status": "present", "value": "RBL-20773", "evidence": "BILL OF LADING"},
+        }
+        request, calls = make_dual_request(
+            lambda: completed_response(observations),
+            extraction_response=lambda class_name: completed_response(extraction_payload),
+        )
+        with patch("documents.services.processing.build_default_request") as mock_build:
+            mock_build.return_value = request
+            response = self.upload("bol.pdf", make_text_pdf(BOL_LINES))
+
+        self.assertEqual(len(calls["extraction"]), 1)
+        self.assertContains(response, "Extracted fields")
+        self.assertContains(response, "RBL-20773")
+        self.assertContains(response, "bol_number")
+
+    def test_extraction_failure_note_is_shown_without_fake_field_values(self) -> None:
+        observations = make_observations("BOL", BOL_EVIDENCE)
+
+        def extraction_response(class_name):
+            raise RetryableRequestFailure("technical_failure")
+
+        request, calls = make_dual_request(
+            lambda: completed_response(observations),
+            extraction_response=extraction_response,
+        )
+        with patch("documents.services.processing.build_default_request") as mock_build:
+            mock_build.return_value = request
+            response = self.upload("bol.pdf", make_text_pdf(BOL_LINES))
+
+        attempt = ProcessingAttempt.objects.get()
+        self.assertEqual(attempt.status, ProcessingAttempt.Status.ACCEPTED)
+        self.assertContains(response, "Field extraction technically failed")
+        self.assertNotContains(response, "Extracted fields")
+
+    def test_extracted_fields_and_original_survive_reopening_the_result_page(self) -> None:
+        # Confirms persistence, not just the response from the upload request:
+        # a fresh GET (a separate request/response cycle) must show the same
+        # fields, and the original PDF link must still resolve, from history.
+        observations = make_observations("BOL", BOL_EVIDENCE)
+        extraction_payload = {
+            **default_extraction_payload("BOL"),
+            "bol_number": {"status": "present", "value": "RBL-20773", "evidence": "BILL OF LADING"},
+        }
+        request, _calls = make_dual_request(
+            lambda: completed_response(observations),
+            extraction_response=lambda class_name: completed_response(extraction_payload),
+        )
+        with patch("documents.services.processing.build_default_request") as mock_build:
+            mock_build.return_value = request
+            self.upload("bol.pdf", make_text_pdf(BOL_LINES))
+
+        attempt = ProcessingAttempt.objects.get()
+        reopened = self.client.get(reverse("documents:result", args=[attempt.pk]))
+
+        self.assertContains(reopened, "Extracted fields")
+        self.assertContains(reopened, "RBL-20773")
+        self.assertContains(reopened, reverse("documents:original", args=[attempt.pk]))
+
+        original_response = self.client.get(reverse("documents:original", args=[attempt.pk]))
+        self.assertEqual(original_response.status_code, 200)

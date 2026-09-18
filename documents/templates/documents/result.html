@@ -26,6 +26,38 @@
         Visual fallback evidence is a human-review description, not a machine-verified exact quote.
       {% endif %}
     </p>
+    {% if attempt.extraction_status == "COMPLETED" %}
+      <h2>Extracted fields</h2>
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Value</th><th>Status</th><th>Confidence</th><th>Evidence</th></tr>
+        </thead>
+        <tbody>
+          {% for field_name, field in attempt.extraction_result.items %}
+            <tr>
+              <td>{{ field_name }}</td>
+              <td>{{ field.value|default:"—" }}</td>
+              <td>{{ field.status }}</td>
+              <td>{{ field.confidence|default:"—" }}</td>
+              <td>{{ field.evidence|default:"—" }}</td>
+            </tr>
+            {% if field.contradiction_with %}
+              <tr>
+                <td colspan="5">
+                  Contradiction: {{ field_name }} matches {{ field.contradiction_with|join:", " }} — needs review.
+                </td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+      <p>Field confidence describes extraction-evidence quality, not a probability of correctness.</p>
+    {% elif attempt.extraction_status == "UNAVAILABLE" %}
+      <p>
+        Field extraction technically failed ({{ attempt.extraction_failure_category }}); the
+        accepted classification above is unaffected.
+      </p>
+    {% endif %}
   {% elif attempt.status == "UNCERTAIN" %}
     <p>The document could not be classified with sufficient evidence.</p>
     {% with reason=attempt.fallback_metadata.routing.reason|default:attempt.primary_metadata.routing.reason %}

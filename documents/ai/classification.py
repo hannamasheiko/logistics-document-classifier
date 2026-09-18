@@ -324,7 +324,14 @@ def build_visual_request_parameters(images: list[Image.Image]) -> dict:
     }
 
 
-class VisualOutputValidationError(ValueError):
+class StructuredOutputValidationError(ValueError):
+    """Common base for structural/evidence validation errors across text,
+    visual, and (documents.ai.extraction) field-extraction output, so
+    run_structured_call can catch one shared retry boundary regardless of
+    which contract produced the response."""
+
+
+class VisualOutputValidationError(StructuredOutputValidationError):
     def __init__(self, code: str, observation_id: str | None = None):
         messages = {
             "unexpected_root_fields": "Model output has unexpected root fields.",
@@ -368,7 +375,7 @@ def validate_visual_output(payload: dict) -> None:
                 raise VisualOutputValidationError("non_null_inactive_evidence", observation_id)
 
 
-class ModelOutputValidationError(ValueError):
+class ModelOutputValidationError(StructuredOutputValidationError):
     def __init__(self, code: str, observation_id: str | None = None):
         messages = {
             "unexpected_root_fields": "Model output has unexpected root fields.",
@@ -570,12 +577,14 @@ def _attempt_metadata(attempt: int, response: dict) -> dict:
     }
 
 
-def _run_classification_call(parameters: dict, request, validate_and_normalize) -> dict:
+def run_structured_call(parameters: dict, request, validate_and_normalize) -> dict:
     """Shared retry/error-handling loop for one structured classification call.
 
-    `validate_and_normalize(payload) -> normalized_payload` raises
-    ModelOutputValidationError or VisualOutputValidationError (both expose
-    `.code` and `.observation_id`) for an invalid payload. Returns
+    `validate_and_normalize(payload) -> normalized_payload` raises a
+    StructuredOutputValidationError subclass (exposing `.code` and an
+    optional per-field identifier attribute) for an invalid payload; shared
+    by classification's own subclasses and documents.ai.extraction's.
+    Returns
     {"observations": normalized_payload, "attempts": [...]} on success.
     Raises ClassificationFailure after exhausting the one-retry policy.
     """
@@ -626,7 +635,7 @@ def _run_classification_call(parameters: dict, request, validate_and_normalize) 
 
         try:
             normalized_payload = validate_and_normalize(payload)
-        except (ModelOutputValidationError, VisualOutputValidationError) as error:
+        except StructuredOutputValidationError as error:
             attempt_metadata["error_category"] = "invalid_structured_output"
             attempt_metadata["validation_error_code"] = error.code
             if error.observation_id is not None:
@@ -659,7 +668,7 @@ def classify_document_text(document_text: str, request) -> dict:
         validate_model_output(normalized, document_text)
         return normalized
 
-    result = _run_classification_call(
+    result = run_structured_call(
         build_request_parameters(document_text), request, validate_and_normalize
     )
     return {
@@ -689,7 +698,7 @@ def classify_document_images(images: list[Image.Image], request) -> dict:
         validate_visual_output(payload)
         return payload
 
-    result = _run_classification_call(
+    result = run_structured_call(
         build_visual_request_parameters(images), request, validate_and_normalize
     )
     return {
