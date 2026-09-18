@@ -297,20 +297,28 @@ Processing розрізняє initial rejection і technical failure після 
 
 ## Task 7: Extraction contract and validation checkpoint (G3)
 
+**Status:** complete; G3 approved. Documentation-only checkpoint, no `documents/` code changes.
+
 **Files:** create `docs/decisions/field-extraction-contract.md`; extend `evaluation/manifest.json` кількома expected field examples. Не створювати окремий extraction experiment або tuning/held-out split.
 
 **Consumes:** stable classification flow, доступний text/OCR/visual context та кілька representative examples. **Produces:** один погоджений вузький contract для Task 8: class-specific fields, structured value/status/evidence, validators, explainable field-confidence calculation, execution rule та failure behavior.
 
-- [ ] Запропонувати невеликий корисний class-specific schema для `INVOICE`, `BOL` і `POD` — орієнтовно 3–5 полів на клас, із value type та semantics для `present`, `missing` і `unclear`. Не витягувати невизначене «все»; для `OTHER` і semantic `UNCERTAIN` extraction не запускати.
-- [ ] Для кожного поля визначити structured result `value/status/evidence`. Evidence має дозволяти reviewer перевірити джерело значення; для text/OCR input перевіряється наявність цитати у переданому тексті, але це не вважається доказом правильної semantic role або правильності OCR.
-- [ ] Визначити лише корисні deterministic validators для погоджених полів: формат/parseability дати, суми або identifier, допустима порожність та прості consistency checks. Валідний формат не доводить, що знайдене значення має правильну роль; semantic errors не приховувати normalization.
-- [ ] Погодити одну просту explainable field-confidence formula на основі status, підтвердженого evidence, validation result і contradictions. Score описує якість extraction evidence, а не probability of correctness; не порівнювати alternative confidence mechanisms, models або thresholds.
-- [ ] Зафіксувати один execution/input rule, що використовує вже погоджений processing context, без окремого порівняння text/visual/call strategies. Якщо доступного context недостатньо для надійного extraction, поле або весь extraction result позначається `unclear`/`unavailable` згідно contract, а не запускає новий classification fallback.
-- [ ] Додати кілька вручну підготовлених expected examples із known values, missing/unclear cases та хоча б одним wrong-semantic-role або contradictory case. Не використовувати LLM output як ground truth і не створювати окремий extraction tuning/held-out split.
-- [ ] Погодити persistence/UI representation для value, status, evidence, validation details і score. Invalid model response або extraction technical failure зберігаються окремо та не змінюють уже `ACCEPTED` classification; доступний partial extraction зберігати лише якщо це прямо дозволяє погоджений contract.
-- [ ] Подати G3 як короткий reviewable contract із schema, examples, formula, limitations та failure behavior. Після погодження зафіксувати його перед Task 8; не проводити широкий model/confidence/input experiment.
+- [x] Запропонувати невеликий корисний class-specific schema для `INVOICE`, `BOL` і `POD` — орієнтовно 3–5 полів на клас, із value type та semantics для `present`, `missing` і `unclear`. Не витягувати невизначене «все»; для `OTHER` і semantic `UNCERTAIN` extraction не запускати.
+- [x] Для кожного поля визначити structured result `value/status/evidence`. Evidence має дозволяти reviewer перевірити джерело значення; для text/OCR input перевіряється наявність цитати у переданому тексті, але це не вважається доказом правильної semantic role або правильності OCR.
+- [x] Визначити лише корисні deterministic validators для погоджених полів: формат/parseability дати, суми або identifier, допустима порожність та прості consistency checks. Валідний формат не доводить, що знайдене значення має правильну роль; semantic errors не приховувати normalization.
+- [x] Погодити одну просту explainable field-confidence formula на основі status, підтвердженого evidence, validation result і contradictions. Score описує якість extraction evidence, а не probability of correctness; не порівнювати alternative confidence mechanisms, models або thresholds.
+- [x] Зафіксувати один execution/input rule, що використовує вже погоджений processing context, без окремого порівняння text/visual/call strategies. Якщо доступного context недостатньо для надійного extraction, поле або весь extraction result позначається `unclear`/`unavailable` згідно contract, а не запускає новий classification fallback.
+- [x] Додати кілька вручну підготовлених expected examples із known values, missing/unclear cases та хоча б одним wrong-semantic-role або contradictory case. Не використовувати LLM output як ground truth і не створювати окремий extraction tuning/held-out split.
+- [x] Погодити persistence/UI representation для value, status, evidence, validation details і score. Invalid model response або extraction technical failure зберігаються окремо та не змінюють уже `ACCEPTED` classification; доступний partial extraction зберігати лише якщо це прямо дозволяє погоджений contract.
+- [x] Подати G3 як короткий reviewable contract із schema, examples, formula, limitations та failure behavior. Після погодження зафіксувати його перед Task 8; не проводити широкий model/confidence/input experiment.
 
 **Exit:** погоджено вузький extraction contract, expected examples, explainable score і failure semantics; Task 8 може реалізувати їх без нових дослідницьких гілок.
+
+### Task 7 verification record
+
+- Контракт: [docs/decisions/field-extraction-contract.md](../../decisions/field-extraction-contract.md). Схема: BOL (6 полів, включно з `destination` — уже частина замороженої ознаки `bol_shipment_structure`), POD (5 полів, включно з `destination`), INVOICE (5 полів). `OTHER`/semantic `UNCERTAIN` — extraction не запускається.
+- Приклади (вручну, без LLM): [evaluation/manifest-extraction.json](../../../evaluation/manifest-extraction.json) — 5 документів, включно з новою синтетичною фікстурою `g3-extraction-contradiction-bol.pdf` спеціально під contradiction-кейс (`shipper == consignee`).
+- `python manage.py test documents.tests` (46) та experiments-тести (39) не зачеплені — жодних змін у `documents/`.
 
 ## Task 8: Planned extraction у збереженому result flow
 

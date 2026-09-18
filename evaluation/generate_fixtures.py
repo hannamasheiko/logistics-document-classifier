@@ -288,6 +288,16 @@ FIXTURES = {
         "Bill to: Great Lakes Components",
         "Service lines, balance due, and payment terms are missing from this fragment.",
     ),
+    "g3-extraction-contradiction-bol.pdf": (
+        "BILL OF LADING",
+        "BOL No: BOL-40217",
+        "Shipper: Meridian Freight Solutions, Dallas, TX",
+        "Consignee: Meridian Freight Solutions, Dallas, TX",
+        "Carrier: Lone Star Trucking",
+        "Meridian Freight Solutions received the goods for transport to the consignee.",
+        "Cargo: 8 pallets of packaging materials  Gross weight: 6,200 lb",
+        "Origin: Dallas, TX  Destination: Dallas, TX",
+    ),
 }
 
 

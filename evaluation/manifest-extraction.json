@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "purpose": "Task 7/G3 hand-prepared expected field-extraction examples. Not an LLM-generated ground truth, not a tuning/held-out split. Reuses already-approved classification documents from manifest-v2.json plus one new synthetic fixture built specifically for the contradiction case.",
+  "documents": [
+    {
+      "id": "g3-bol-known-and-missing",
+      "path": "documents/v2-heldout-bol-rail.pdf",
+      "class": "BOL",
+      "note": "Clean example: five fields present, one (ship_date) genuinely missing from the document.",
+      "expected_fields": {
+        "bol_number": {"status": "present", "value": "RBL-20773"},
+        "carrier": {"status": "present", "value": "Central Plains Railway"},
+        "shipper": {"status": "present", "value": "Prairie Grain Cooperative, Omaha, NE"},
+        "consignee": {"status": "present", "value": "Riverbend Milling, St. Louis, MO"},
+        "destination": {"status": "present", "value": "St. Louis, MO"},
+        "ship_date": {"status": "missing", "value": null}
+      }
+    },
+    {
+      "id": "g3-pod-all-present",
+      "path": "documents/v2-heldout-pod-certificate.pdf",
+      "class": "POD",
+      "note": "All fields present; tracking_number is labeled 'Certificate' on this document, not literally 'tracking number'.",
+      "expected_fields": {
+        "tracking_number": {"status": "present", "value": "DCC-6109"},
+        "carrier": {"status": "present", "value": "Keystone Regional Freight"},
+        "recipient_name": {"status": "present", "value": "Amina Clarke"},
+        "delivery_date": {"status": "present", "value": "September 4, 2026 at 10:18 EDT"},
+        "destination": {"status": "present", "value": "Harrisburg, PA"}
+      }
+    },
+    {
+      "id": "g3-invoice-terms-not-a-date",
+      "path": "documents/v2-heldout-invoice-forwarder.pdf",
+      "class": "INVOICE",
+      "note": "due_date must stay missing: the document only states payment terms ('Net 21'), which is not itself a calendar date and must not be extracted as one.",
+      "expected_fields": {
+        "invoice_number": {"status": "present", "value": "FFI-19024"},
+        "provider": {"status": "present", "value": "Continental Forwarding Group"},
+        "bill_to": {"status": "present", "value": "Cascade Outdoor Goods"},
+        "amount_due": {"status": "present", "value": "$2,180.00"},
+        "due_date": {"status": "missing", "value": null}
+      }
+    },
+    {
+      "id": "g3-invoice-wrong-semantic-role",
+      "path": "documents/v2-heldout-incomplete-invoice-fragment.pdf",
+      "class": "INVOICE",
+      "note": "Wrong-semantic-role trap: the document literally prints 'Provider: [partially unreadable]'. That bracketed placeholder is not a real provider name and must not be extracted as a present value.",
+      "expected_fields": {
+        "invoice_number": {"status": "present", "value": "FSI-11804"},
+        "provider": {"status": "unclear", "value": null},
+        "bill_to": {"status": "present", "value": "Great Lakes Components"},
+        "amount_due": {"status": "missing", "value": null},
+        "due_date": {"status": "missing", "value": null}
+      }
+    },
+    {
+      "id": "g3-bol-shipper-consignee-contradiction",
+      "path": "documents/g3-extraction-contradiction-bol.pdf",
+      "class": "BOL",
+      "note": "New synthetic fixture built specifically for this contract: shipper and consignee are identical, which must be flagged as a contradiction and drive both fields' confidence to 0.0, without discarding either value.",
+      "expected_fields": {
+        "bol_number": {"status": "present", "value": "BOL-40217"},
+        "carrier": {"status": "present", "value": "Lone Star Trucking"},
+        "shipper": {"status": "present", "value": "Meridian Freight Solutions, Dallas, TX", "contradiction_with": ["consignee"]},
+        "consignee": {"status": "present", "value": "Meridian Freight Solutions, Dallas, TX", "contradiction_with": ["shipper"]},
+        "destination": {"status": "present", "value": "Dallas, TX"},
+        "ship_date": {"status": "missing", "value": null}
+      }
+    }
+  ]
+}
