@@ -13,6 +13,7 @@ against.
 
 import re
 from copy import deepcopy
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from PIL import Image
@@ -277,12 +278,16 @@ def validate_date(value: str) -> dict:
 
 
 def validate_amount(value: str) -> dict:
-    match = re.search(r"\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+(?:\.\d+)?", value)
+    match = re.fullmatch(
+        r"(?:USD\s*)?\$?\s*(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?",
+        value.strip(),
+    )
     if not match:
         return {"valid": False, "reason": "no_parseable_amount_found", "normalized_value": None}
     try:
-        amount = float(match.group(0).replace(",", ""))
-    except ValueError:
+        numeric_value = re.sub(r"^(?:USD\s*)?\$?\s*", "", match.group(0))
+        amount = Decimal(numeric_value.replace(",", ""))
+    except InvalidOperation:
         return {"valid": False, "reason": "no_parseable_amount_found", "normalized_value": None}
     return {"valid": True, "reason": None, "normalized_value": f"{amount:.2f}"}
 

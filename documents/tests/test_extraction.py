@@ -51,9 +51,36 @@ class ValidatorTests(unittest.TestCase):
         self.assertTrue(result["valid"])
         self.assertEqual(result["normalized_value"], "2180.00")
 
+    def test_validate_amount_parses_ungrouped_and_currency_code_values(self):
+        cases = {
+            "1234.56": "1234.56",
+            "12500": "12500.00",
+            "USD 1,234.50": "1234.50",
+        }
+
+        for value, expected in cases.items():
+            with self.subTest(value=value):
+                result = validate_amount(value)
+                self.assertTrue(result["valid"])
+                self.assertEqual(result["normalized_value"], expected)
+
     def test_validate_amount_rejects_non_numeric_text(self):
         result = validate_amount("payment due on receipt")
         self.assertFalse(result["valid"])
+
+    def test_validate_amount_rejects_numbers_embedded_in_non_currency_text(self):
+        for value in ("Net 30", "amount 125.00 due"):
+            with self.subTest(value=value):
+                result = validate_amount(value)
+                self.assertFalse(result["valid"])
+                self.assertIsNone(result["normalized_value"])
+
+    def test_validate_amount_rejects_invalid_grouping_and_precision(self):
+        for value in ("12,34.56", "1234.567"):
+            with self.subTest(value=value):
+                result = validate_amount(value)
+                self.assertFalse(result["valid"])
+                self.assertIsNone(result["normalized_value"])
 
     def test_validate_identifier_accepts_short_mixed_alnum_values(self):
         self.assertTrue(validate_identifier("RBL-20773")["valid"])
