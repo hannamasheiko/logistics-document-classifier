@@ -308,8 +308,10 @@ python manage.py evaluate_documents \
 
 ## Оцінка якості
 
-Pipeline класифікації та extraction перевірявся живими викликами OpenAI на
-маніфестах з відомими мітками через `evaluate_documents`:
+131 automated test (92 у `documents.tests`, 39 у `experiments/tests`)
+проходить без жодного live API call. Pipeline класифікації та extraction
+додатково перевірявся живими викликами OpenAI на двох маніфестах з відомими
+мітками через `evaluate_documents`:
 
 | Набір | Документів | Правильно accepted | Очікувана escalation | Semantic uncertainty (правильно) | Неправильно accepted | Технічні failures |
 |---|---|---|---|---|---|---|
@@ -317,6 +319,10 @@ Pipeline класифікації та extraction перевірявся жив�
 | manifest-v2 (held-out) | 12 | 10 | 1 | 1 | 0 | 0 |
 
 Field extraction співпав на 27 з 27 очікуваних значень на 5 прикладах.
+
+Ці набори — невеликі, вручну розмічені приклади для перевірки поведінки
+pipeline end-to-end, а не calibrated production benchmark чи статистично
+репрезентативна вибірка реальних документів.
 
 Повні звіти: [evaluation/results/final-v1.json](evaluation/results/final-v1.json),
 [final-v2.json](evaluation/results/final-v2.json).

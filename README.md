@@ -313,8 +313,10 @@ and outcomes only, no raw document text).
 
 ## Evaluation
 
-The classification and extraction pipeline has been evaluated with live
-OpenAI calls against labeled document sets via `evaluate_documents`:
+131 automated tests (92 in `documents.tests`, 39 in `experiments/tests`) pass
+without live API calls. The classification and extraction pipeline has also
+been evaluated with live OpenAI calls against two labeled document sets via
+`evaluate_documents`:
 
 | Set | Documents | Accepted correctly | Expected escalation | Semantic uncertainty (correct) | Accepted incorrectly | Technical failures |
 |---|---|---|---|---|---|---|
@@ -322,6 +324,10 @@ OpenAI calls against labeled document sets via `evaluate_documents`:
 | manifest-v2 (held-out) | 12 | 10 | 1 | 1 | 0 | 0 |
 
 Field extraction matched 27 of 27 expected values across 5 labeled examples.
+
+These sets are small, hand-labeled examples meant to check the pipeline's
+behavior end to end, not a calibrated production benchmark or a statistically
+representative sample of real-world documents.
 
 Full reports: [evaluation/results/final-v1.json](evaluation/results/final-v1.json),
 [final-v2.json](evaluation/results/final-v2.json).
