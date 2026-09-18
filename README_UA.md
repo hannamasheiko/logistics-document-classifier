@@ -287,6 +287,40 @@ python manage.py makemigrations --check --dry-run
 них замінюється контрольованими відповідями. Окремі PDF/OCR-тести працюють із
 локальними fixtures і встановленим Tesseract.
 
+### Оцінка за маніфестом
+
+Окрім unit-тестів, `evaluate_documents` проганяє той самий production pipeline
+проти набору реальних документів із відомими мітками, використовуючи живі
+виклики OpenAI:
+
+```sh
+python manage.py evaluate_documents \
+  --manifest evaluation/manifest.json \
+  --output evaluation/results/report.json \
+  --run-live
+```
+
+Без `--run-live` команда лише валідує маніфест, без жодних витрат на API.
+Кожна attempt, яку вона створює, видаляється після оцінки, тож evaluation-
+прогони ніколи не впливають на спільну demo-історію. Звіти в
+`evaluation/results/` — sanitized (лише counts і outcomes, без сирого тексту
+документів).
+
+## Оцінка якості
+
+Pipeline класифікації та extraction перевірявся живими викликами OpenAI на
+маніфестах з відомими мітками через `evaluate_documents`:
+
+| Набір | Документів | Правильно accepted | Очікувана escalation | Semantic uncertainty (правильно) | Неправильно accepted | Технічні failures |
+|---|---|---|---|---|---|---|
+| manifest-v1 (tuning) | 22 | 16 | 3 | 2 | 1 | 0 |
+| manifest-v2 (held-out) | 12 | 10 | 1 | 1 | 0 | 0 |
+
+Field extraction співпав на 27 з 27 очікуваних значень на 5 прикладах.
+
+Повні звіти: [evaluation/results/final-v1.json](evaluation/results/final-v1.json),
+[final-v2.json](evaluation/results/final-v2.json).
+
 ## Обмеження
 
 - Обробка виконується синхронно в межах HTTP request.
@@ -296,7 +330,9 @@ python manage.py makemigrations --check --dry-run
 - Routing score та field confidence є пояснюваними сигналами якості evidence,
   а не каліброваними ймовірностями.
 - Visual evidence є описом побаченого на сторінці й не може бути перевірене як
-  точна текстова цитата.
+  точна текстова цитата; evaluation-тестування знайшло випадок, коли модель
+  процитувала реальну назву розділу, але неправильно зрозуміла, чи цей розділ
+  дійсно мав вміст.
 - Реальні завантажені тексти та зображення надсилаються до OpenAI API без
   автоматичного маскування чутливих даних.
 

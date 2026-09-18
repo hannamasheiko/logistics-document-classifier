@@ -1,0 +1,46 @@
+{
+  "total_fields": 27,
+  "total_matches": 27,
+  "results": [
+    {
+      "id": "g3-bol-known-and-missing",
+      "class": "BOL",
+      "extraction_status": "COMPLETED",
+      "field_total": 6,
+      "field_matches": 6,
+      "mismatches": []
+    },
+    {
+      "id": "g3-pod-all-present",
+      "class": "POD",
+      "extraction_status": "COMPLETED",
+      "field_total": 5,
+      "field_matches": 5,
+      "mismatches": []
+    },
+    {
+      "id": "g3-invoice-terms-not-a-date",
+      "class": "INVOICE",
+      "extraction_status": "COMPLETED",
+      "field_total": 5,
+      "field_matches": 5,
+      "mismatches": []
+    },
+    {
+      "id": "g3-invoice-wrong-semantic-role",
+      "class": "INVOICE",
+      "extraction_status": "COMPLETED",
+      "field_total": 5,
+      "field_matches": 5,
+      "mismatches": []
+    },
+    {
+      "id": "g3-bol-shipper-consignee-contradiction",
+      "class": "BOL",
+      "extraction_status": "COMPLETED",
+      "field_total": 6,
+      "field_matches": 6,
+      "mismatches": []
+    }
+  ]
+}

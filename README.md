@@ -294,6 +294,38 @@ The automated tests do not make live OpenAI calls: the external AI boundary
 is replaced with controlled responses. Separate PDF/OCR tests use local
 fixtures and the installed Tesseract.
 
+### Evaluating against a manifest
+
+Beyond the unit tests, `evaluate_documents` runs the same production pipeline
+against a labeled set of real documents, using live OpenAI calls:
+
+```sh
+python manage.py evaluate_documents \
+  --manifest evaluation/manifest.json \
+  --output evaluation/results/report.json \
+  --run-live
+```
+
+Without `--run-live` it only validates the manifest, at no API cost. Every
+attempt it creates is deleted afterward, so evaluation runs never affect the
+shared demo history. Reports in `evaluation/results/` are sanitized (counts
+and outcomes only, no raw document text).
+
+## Evaluation
+
+The classification and extraction pipeline has been evaluated with live
+OpenAI calls against labeled document sets via `evaluate_documents`:
+
+| Set | Documents | Accepted correctly | Expected escalation | Semantic uncertainty (correct) | Accepted incorrectly | Technical failures |
+|---|---|---|---|---|---|---|
+| manifest-v1 (tuning) | 22 | 16 | 3 | 2 | 1 | 0 |
+| manifest-v2 (held-out) | 12 | 10 | 1 | 1 | 0 | 0 |
+
+Field extraction matched 27 of 27 expected values across 5 labeled examples.
+
+Full reports: [evaluation/results/final-v1.json](evaluation/results/final-v1.json),
+[final-v2.json](evaluation/results/final-v2.json).
+
 ## Limitations
 
 - Processing is performed synchronously within the HTTP request.
@@ -303,7 +335,8 @@ fixtures and the installed Tesseract.
 - The routing score and field confidence are explainable indicators of
   evidence quality, not calibrated probabilities.
 - Visual evidence describes what is seen on the page and cannot be validated
-  as an exact text quotation.
+  as an exact text quotation; evaluation testing found a case where it quoted
+  a real section label but misread whether that section actually had content.
 - Real uploaded text and images are sent to the OpenAI API without automatic
   masking of sensitive data.
 
