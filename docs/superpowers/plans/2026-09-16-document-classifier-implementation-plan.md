@@ -412,3 +412,26 @@ python manage.py evaluate_documents --manifest evaluation/manifest.json --output
 ## 5. Self-review та handoff
 
 План перевірити проти spec за матрицею вище: усі mandatory capabilities мають task, classification/fallback experiments завершуються concrete decision gates, technical failures не перетворюються на OTHER/UNCERTAIN, extraction не стала stretch goal або другою широкою AI-дослідницькою системою. Поведінкові сценарії задають потрібні перевірки; конкретні test assertions і Python interfaces визначаються після відповідних gates, а не наперед. Після G1/G0/GE/G2 уточнюються залежні classification contracts; G3 фіксує вузький extraction contract перед реалізацією.
+
+## 6. Final self-review and sign-off
+
+Усі 9 тасків і всі чотири gates (G1–G4) мають статус `complete` із власним verification record; жоден коміт за час виконання не був зроблений без окремого явного дозволу користувача.
+
+Після завершення Task 9 матрицю з розділу 4 було перевірено ще раз — не проти призначення тасків, а безпосередньо проти поточного коду:
+
+- **Django/PostgreSQL/local media/Compose DB:** `compose.yaml` і `config/settings.py` — `ENGINE=postgresql`, `MEDIA_ROOT=BASE_DIR/media`.
+- **10 МБ / 10 сторінок, без мовчазного обрізання, rejection до attempt:** `documents/services/pdf.py` — `MAX_PDF_BYTES=10_000_000`, `MAX_PDF_PAGES=10`, перевірено до створення `ProcessingAttempt`.
+- **Нова attempt на кожне прийняте завантаження, failures/original зберігаються:** `documents/models.py` — `Status.PROCESSING/ACCEPTED/UNCERTAIN/FAILED`, `original_file` зберігається завжди, включно з `FAILED`.
+- **ACCEPTED / semantic UNCERTAIN / technical failure розділені:** technical failure — окремий `FAILED` статус з `failure_stage/category`, ніколи не мапиться в `OTHER` чи `UNCERTAIN`.
+- **Established combined ambiguity не викликає fallback:** `documents/services/routing.py` — `insufficient_readable_content` перевіряється першим (deterministic override), `established_combined_bol_pod` — окремо, обидва не запускають fallback.
+- **Один fallback, незалежні перевірки, primary diagnostics при failure:** `documents/services/processing.py` — `ESCALATE` від fallback routing структурно схлопується в `UNCERTAIN`, другий escalation неможливий; `primary_observations` не стирається при fallback failure.
+- **Evidence-based score, deterministic routing, no calibration claim:** `routing.py` і README — score явно описаний як evidence-completeness signal, не probability.
+- **Upload/result/history/original:** `documents/{views,urls}.py` і templates — перевірено живими browser walkthrough у Task 4, 6, 9.
+- **Planned fields + explainable field confidence:** `documents/ai/extraction.py` — 27/27 живих field matches (Task 8 і Task 9).
+- **Expected examples для extraction, без runtime oracle чи held-out split:** `evaluation/manifest-extraction.json` — вручну підготовлені приклади.
+- **No accounts/queues/workers/extra apps:** `config/settings.py` — лише `documents` app в `INSTALLED_APPS`, немає `celery`/`redis`/queue-залежностей чи login views.
+- **No automatic scope reduction or commits:** підтверджено всією історією виконання — жоден стейдж не був скорочений мовчки, кожен коміт погоджувався окремо.
+
+Повторний прогін безпосередньо перед цим записом: `python manage.py check` — 0 issues; `python manage.py makemigrations --check --dry-run` — no changes; `python manage.py test documents.tests` — **82/82 passed**.
+
+Розбіжностей між заявленим покриттям (розділ 4) і фактичним станом коду не знайдено. Extraction лишився вузьким (3–6 полів на клас, той самий OpenAI provider, без нового provider abstraction) — не перетворився на окрему AI-дослідницьку систему. Planned delivery (документ, PDF processing, classification з evidence-based routing, один visual fallback, planned field extraction, persistence/UI/history, evaluation report) вважається завершеним і перевіреним проти погодженого spec.
