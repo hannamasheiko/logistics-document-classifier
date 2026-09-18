@@ -298,6 +298,16 @@ FIXTURES = {
         "Cargo: 8 pallets of packaging materials  Gross weight: 6,200 lb",
         "Origin: Dallas, TX  Destination: Dallas, TX",
     ),
+    "g3-invoice-wrong-semantic-role-accepted.pdf": (
+        "FREIGHT BROKER INVOICE",
+        "Invoice: FBI-77021",
+        "Provider: Timber Ridge Logistics",
+        "Bill to: Cascade Outdoor Goods",
+        "Linehaul service: $2,340.00",
+        "Fuel surcharge: $310.00",
+        "Amount due: $2,650.00",
+        "Due date: [to be confirmed]",
+    ),
 }
 
 

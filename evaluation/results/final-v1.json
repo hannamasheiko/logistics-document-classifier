@@ -1,0 +1,266 @@
+{
+  "generated_at": "2026-09-18T10:15:57.524968+00:00",
+  "manifest": "evaluation/manifest.json",
+  "extraction_manifest": null,
+  "classification": {
+    "counts": {
+      "accepted_correct": 16,
+      "accepted_incorrect": 1,
+      "expected_escalation": 3,
+      "unnecessary_escalation": 0,
+      "semantic_uncertainty_correct": 2,
+      "semantic_uncertainty_incorrect": 0,
+      "technical_failure": 0
+    },
+    "results": [
+      {
+        "id": "g1-bol-filled",
+        "split": "tuning",
+        "expected_label": "BOL",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "BOL",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "g1-pod-filled",
+        "split": "tuning",
+        "expected_label": "POD",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "POD",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "g1-logistics-invoice-filled",
+        "split": "tuning",
+        "expected_label": "INVOICE",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "INVOICE",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "g1-commercial-invoice-filled",
+        "split": "tuning",
+        "expected_label": "OTHER",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "OTHER",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "tuning-bol-blank-delivery",
+        "split": "tuning",
+        "expected_label": "BOL",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "BOL",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "tuning-pod-bol-reference",
+        "split": "tuning",
+        "expected_label": "POD",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "POD",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "tuning-invoice-with-bol-reference",
+        "split": "tuning",
+        "expected_label": "INVOICE",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "INVOICE",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "tuning-commercial-invoice-with-freight",
+        "split": "tuning",
+        "expected_label": "OTHER",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "OTHER",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "tuning-combined-bol-pod",
+        "split": "tuning",
+        "expected_label": null,
+        "expected_outcome": "UNCERTAIN_NO_FALLBACK",
+        "status": "UNCERTAIN",
+        "accepted_label": null,
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false,
+        "routing_reason": "established_combined_bol_pod"
+      },
+      {
+        "id": "tuning-incomplete-bol-fragment",
+        "split": "tuning",
+        "expected_label": "BOL",
+        "expected_outcome": "ESCALATE",
+        "status": "UNCERTAIN",
+        "accepted_label": null,
+        "routing_score": null,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": true,
+        "routing_reason": "insufficient_readable_content"
+      },
+      {
+        "id": "tuning-incomplete-invoice-fragment",
+        "split": "tuning",
+        "expected_label": "INVOICE",
+        "expected_outcome": "ESCALATE",
+        "status": "UNCERTAIN",
+        "accepted_label": null,
+        "routing_score": 0.3333333333333333,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": true,
+        "routing_reason": "incomplete_candidate_combination"
+      },
+      {
+        "id": "tuning-incomplete-customs-fragment",
+        "split": "tuning",
+        "expected_label": "OTHER",
+        "expected_outcome": "ESCALATE",
+        "status": "ACCEPTED",
+        "accepted_label": "OTHER",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": true
+      },
+      {
+        "id": "heldout-bol-produce",
+        "split": "heldout",
+        "expected_label": "BOL",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "BOL",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "heldout-bol-ocean",
+        "split": "heldout",
+        "expected_label": "BOL",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "BOL",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "heldout-pod-electronics",
+        "split": "heldout",
+        "expected_label": "POD",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "POD",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "heldout-pod-furniture",
+        "split": "heldout",
+        "expected_label": "POD",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "POD",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "heldout-invoice-carrier",
+        "split": "heldout",
+        "expected_label": "INVOICE",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "INVOICE",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "heldout-invoice-drayage",
+        "split": "heldout",
+        "expected_label": "INVOICE",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "INVOICE",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "heldout-other-packing-list",
+        "split": "heldout",
+        "expected_label": "OTHER",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "OTHER",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "heldout-other-purchase-order",
+        "split": "heldout",
+        "expected_label": "OTHER",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "OTHER",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "heldout-combined-bol-pod",
+        "split": "heldout",
+        "expected_label": null,
+        "expected_outcome": "UNCERTAIN_NO_FALLBACK",
+        "status": "UNCERTAIN",
+        "accepted_label": null,
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false,
+        "routing_reason": "established_combined_bol_pod"
+      },
+      {
+        "id": "heldout-incomplete-pod-fragment",
+        "split": "heldout",
+        "expected_label": "POD",
+        "expected_outcome": "ESCALATE",
+        "status": "UNCERTAIN",
+        "accepted_label": null,
+        "routing_score": 0.3333333333333333,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": true,
+        "routing_reason": "incomplete_candidate_combination"
+      }
+    ]
+  },
+  "extraction": null
+}

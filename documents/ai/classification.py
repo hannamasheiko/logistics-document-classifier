@@ -24,10 +24,14 @@ MODEL = "gpt-5.4-mini-2026-03-17"
 CONFIG_ID = "primary-text-evaluation-v2"
 PROMPT_ID = "primary-classification-evidence-v2"
 SCHEMA_ID = "primary-classification-evidence-v2"
-MAX_OUTPUT_TOKENS = 2_000  # raised from 1,200: "medium" reasoning effort uses
-# more reasoning tokens (observed 770 on one call) than the "low" effort this
-# limit was originally sized for, and reasoning tokens count against this
-# budget too.
+MAX_OUTPUT_TOKENS = 6_000  # raised from 1,200 (Task 6) to 2,000 then 3,000
+# (Task 9): "medium" reasoning effort's token usage is genuinely
+# high-variance per call, not just per document -- three live calls on the
+# exact same real BOL used 1,455/2,523/1,778 reasoning tokens. The cap
+# itself is free unless actually consumed (billing is by tokens used, not
+# by the configured limit), and `output_limit_incomplete` never retries (a
+# resource-bound failure, not a transient one), so the cap needs real
+# headroom over the observed tail, not just the typical case.
 MAX_RETRIES_PER_DOCUMENT = 1
 REQUEST_TIMEOUT_SECONDS = 60.0
 

@@ -44,15 +44,15 @@
     },
     {
       "id": "g3-invoice-wrong-semantic-role",
-      "path": "documents/v2-heldout-incomplete-invoice-fragment.pdf",
+      "path": "documents/g3-invoice-wrong-semantic-role-accepted.pdf",
       "class": "INVOICE",
-      "note": "Wrong-semantic-role trap: the document literally prints 'Provider: [partially unreadable]'. That bracketed placeholder is not a real provider name and must not be extracted as a present value.",
+      "note": "Fixed at Task 9 after a live end-to-end regression found the original choice (v2-heldout-incomplete-invoice-fragment.pdf) never reaches ACCEPTED through the real classification pipeline (it correctly ESCALATEs first, per its own classification-manifest expectation), so extraction never actually ran on it outside Task 7's isolated, classification-bypassing check. This new synthetic fixture has a complete INVOICE combination (so it genuinely reaches ACCEPTED) plus a wrong-semantic-role trap: 'Due date: [to be confirmed]' is a placeholder, not a real date, and must not be extracted as a present value.",
       "expected_fields": {
-        "invoice_number": {"status": "present", "value": "FSI-11804"},
-        "provider": {"status": "unclear", "value": null},
-        "bill_to": {"status": "present", "value": "Great Lakes Components"},
-        "amount_due": {"status": "missing", "value": null},
-        "due_date": {"status": "missing", "value": null}
+        "invoice_number": {"status": "present", "value": "FBI-77021"},
+        "provider": {"status": "present", "value": "Timber Ridge Logistics"},
+        "bill_to": {"status": "present", "value": "Cascade Outdoor Goods"},
+        "amount_due": {"status": "present", "value": "$2,650.00"},
+        "due_date": {"status": "unclear", "value": null}
       }
     },
     {

@@ -1,0 +1,198 @@
+{
+  "generated_at": "2026-09-18T10:28:25.912165+00:00",
+  "manifest": "evaluation/manifest-v2.json",
+  "extraction_manifest": "evaluation/manifest-extraction.json",
+  "classification": {
+    "counts": {
+      "accepted_correct": 10,
+      "accepted_incorrect": 0,
+      "expected_escalation": 1,
+      "unnecessary_escalation": 0,
+      "semantic_uncertainty_correct": 1,
+      "semantic_uncertainty_incorrect": 0,
+      "technical_failure": 0
+    },
+    "results": [
+      {
+        "id": "v2-tuning-packing-list",
+        "split": "tuning",
+        "expected_label": "OTHER",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "OTHER",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "v2-tuning-purchase-order",
+        "split": "tuning",
+        "expected_label": "OTHER",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "OTHER",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "v2-heldout-bol-rail",
+        "split": "heldout",
+        "expected_label": "BOL",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "BOL",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "v2-heldout-bol-intermodal",
+        "split": "heldout",
+        "expected_label": "BOL",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "BOL",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "v2-heldout-pod-certificate",
+        "split": "heldout",
+        "expected_label": "POD",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "POD",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "v2-heldout-pod-freight-receipt",
+        "split": "heldout",
+        "expected_label": "POD",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "POD",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "v2-heldout-invoice-forwarder",
+        "split": "heldout",
+        "expected_label": "INVOICE",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "INVOICE",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "v2-heldout-invoice-warehouse",
+        "split": "heldout",
+        "expected_label": "INVOICE",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "INVOICE",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "v2-heldout-other-inspection-certificate",
+        "split": "heldout",
+        "expected_label": "OTHER",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "OTHER",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "v2-heldout-other-pick-list",
+        "split": "heldout",
+        "expected_label": "OTHER",
+        "expected_outcome": "ACCEPT",
+        "status": "ACCEPTED",
+        "accepted_label": "OTHER",
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false
+      },
+      {
+        "id": "v2-heldout-combined-intermodal-delivery",
+        "split": "heldout",
+        "expected_label": null,
+        "expected_outcome": "UNCERTAIN_NO_FALLBACK",
+        "status": "UNCERTAIN",
+        "accepted_label": null,
+        "routing_score": 1.0,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": false,
+        "routing_reason": "established_combined_bol_pod"
+      },
+      {
+        "id": "v2-heldout-incomplete-invoice-fragment",
+        "split": "heldout",
+        "expected_label": "INVOICE",
+        "expected_outcome": "ESCALATE",
+        "status": "UNCERTAIN",
+        "accepted_label": null,
+        "routing_score": 0.3333333333333333,
+        "score_method": "critical-feature-coverage-v1",
+        "used_fallback": true,
+        "routing_reason": "incomplete_candidate_combination"
+      }
+    ]
+  },
+  "extraction": {
+    "total_fields": 27,
+    "total_matches": 27,
+    "results": [
+      {
+        "id": "g3-bol-known-and-missing",
+        "class": "BOL",
+        "extraction_status": "COMPLETED",
+        "field_total": 6,
+        "field_matches": 6,
+        "mismatches": []
+      },
+      {
+        "id": "g3-pod-all-present",
+        "class": "POD",
+        "extraction_status": "COMPLETED",
+        "field_total": 5,
+        "field_matches": 5,
+        "mismatches": []
+      },
+      {
+        "id": "g3-invoice-terms-not-a-date",
+        "class": "INVOICE",
+        "extraction_status": "COMPLETED",
+        "field_total": 5,
+        "field_matches": 5,
+        "mismatches": []
+      },
+      {
+        "id": "g3-invoice-wrong-semantic-role",
+        "class": "INVOICE",
+        "extraction_status": "COMPLETED",
+        "field_total": 5,
+        "field_matches": 5,
+        "mismatches": []
+      },
+      {
+        "id": "g3-bol-shipper-consignee-contradiction",
+        "class": "BOL",
+        "extraction_status": "COMPLETED",
+        "field_total": 6,
+        "field_matches": 6,
+        "mismatches": []
+      }
+    ]
+  }
+}

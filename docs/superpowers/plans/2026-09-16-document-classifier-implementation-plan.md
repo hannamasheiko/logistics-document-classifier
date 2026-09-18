@@ -347,15 +347,17 @@ Processing розрізняє initial rejection і technical failure після 
 
 ## Task 9: Delivery evaluation, reviewer quickstart та review gate
 
+**Status:** complete.
+
 **Files:** `documents/management/commands/evaluate_documents.py`, `evaluation/results/`, `README.md`; fix only files with конкретними findings.
 
 **Consumes:** Milestones 1–3 та погоджені evaluation criteria. **Produces:** reviewable planned delivery з actual results/limitations, без автоматичного publish/commit.
 
-- [ ] Завершити evaluation command з явними `--manifest` і `--output` arguments; live calls лише при явному запуску, не під час звичайних unit tests. Report зберігає model/prompt/config identifiers, classification outcomes, expected/actual labels, routing scores/methods, fallback use, latency/usage where available; для погоджених extraction examples — expected/actual fields, status/evidence/validation/score.
-- [ ] Запустити frozen classification held-out set без threshold retuning на ньому. Показати абсолютні counts, per-class confusions, accepted errors, escalation/fallback corrections/degradations і semantic uncertainty. Extraction перевірити на погоджених G3 expected examples без окремого extraction split або calibration claim.
-- [ ] Окремо виконати automated branch tests для rare failures; не видавати mock routing tests за емпіричну якість LLM.
-- [ ] Перевірити fresh reviewer setup: prerequisites, dependency install, PostgreSQL startup, migration, local media, OpenAI configuration без виведення секретів, Django start та перший sample upload.
-- [ ] Запустити фінальні перевірки:
+- [x] Завершити evaluation command з явними `--manifest` і `--output` arguments; live calls лише при явному запуску, не під час звичайних unit tests. Report зберігає model/prompt/config identifiers, classification outcomes, expected/actual labels, routing scores/methods, fallback use, latency/usage where available; для погоджених extraction examples — expected/actual fields, status/evidence/validation/score.
+- [x] Запустити frozen classification held-out set без threshold retuning на ньому. Показати абсолютні counts, per-class confusions, accepted errors, escalation/fallback corrections/degradations і semantic uncertainty. Extraction перевірити на погоджених G3 expected examples без окремого extraction split або calibration claim.
+- [x] Окремо виконати automated branch tests для rare failures; не видавати mock routing tests за емпіричну якість LLM.
+- [x] Перевірити fresh reviewer setup: prerequisites, dependency install, PostgreSQL startup, migration, local media, OpenAI configuration без виведення секретів, Django start та перший sample upload.
+- [x] Запустити фінальні перевірки:
 
 ```sh
 python manage.py check
@@ -366,12 +368,27 @@ python manage.py evaluate_documents --manifest evaluation/manifest.json --output
 
 Остання команда використовує live API лише за погодженого бюджету та налаштованого runtime доступу; її неможливість відображається як невиконана перевірка, не PASS. Django tests працюють на PostgreSQL і не звертаються до live API.
 
-- [ ] Браузером пройти три короткі сценарії: один text-layer upload; один scanned document із visual fallback; повторне відкриття result/history з original PDF та extracted fields. Uncertainty, technical failure, duplicate upload і invalid limits покрити automated tests, не дублювати повною ручною browser matrix.
-- [ ] Записати фактичні результати, unresolved limitations і correction iterations. Якщо змінився prompt/threshold, повторити релевантну evaluation та позначити її новою версією; не приховувати попередні failures.
-- [ ] Надати G4 review: що виконано, що перевірено, що не вдалося перевірити, deviations від spec. При scope problem обговорити contingency, а не оголосити часткову реалізацію повною.
-- [ ] Перед будь-яким комітом підготувати summary/tests/results і proposed commit message; чекати explicit commit approval. Push/public repository creation — лише в окремо авторизованому кроці.
+- [x] Браузером пройти три короткі сценарії: один text-layer upload; один scanned document із visual fallback; повторне відкриття result/history з original PDF та extracted fields. Uncertainty, technical failure, duplicate upload і invalid limits покрити automated tests, не дублювати повною ручною browser matrix.
+- [x] Записати фактичні результати, unresolved limitations і correction iterations. Якщо змінився prompt/threshold, повторити релевантну evaluation та позначити її новою версією; не приховувати попередні failures.
+- [x] Надати G4 review: що виконано, що перевірено, що не вдалося перевірити, deviations від spec. При scope problem обговорити contingency, а не оголосити часткову реалізацію повною.
+- [x] Перед будь-яким комітом підготувати summary/tests/results і proposed commit message; чекати explicit commit approval. Push/public repository creation — лише в окремо авторизованому кроці.
 
 **Exit:** користувач отримав concrete delivery review. Наявність плану або зелених mocks не означає, що всі criteria виконані.
+
+### Task 9 verification record
+
+- `python manage.py check`, `manage.py makemigrations --check --dry-run` та `python manage.py test documents.tests` → **82/82 passed** (4 нових тести для `evaluate_documents`: dry-run validation, live run з cleanup verification, missing-file handling, extraction-manifest run).
+- Живий регресійний прогін через реальний production pipeline (`evaluate_documents --run-live`), кожен attempt видалено одразу після оцінки:
+  - [evaluation/results/final-v1.json](../../../evaluation/results/final-v1.json) (22 документи): 16 accepted_correct, 1 accepted_incorrect, 3 expected_escalation, 2 semantic_uncertainty_correct, 0 technical_failure.
+  - [evaluation/results/final-v2.json](../../../evaluation/results/final-v2.json) (12 held-out документів): 10 accepted_correct, 0 incorrect, 1 expected_escalation, 1 semantic_uncertainty_correct, 0 technical_failure — 100% коректна поведінка на цьому split.
+  - Extraction на [evaluation/manifest-extraction.json](../../../evaluation/manifest-extraction.json) (5 документів, 27 полів): **27/27** field matches.
+- Знайдено і виправлено під час регресії (не threshold retuning, а реальні gap-и):
+  - `output_limit_incomplete` на `g1-bol-filled` навіть при 2000/3000 токенах — root-caused через живе повторне тестування variance reasoning-токенів на тому ж документі (1455/2523/1778); `MAX_OUTPUT_TOKENS` піднято до 6000 у [documents/ai/classification.py](../../../documents/ai/classification.py), підтверджено повторним живим прогоном (ACCEPTED, score 1.0).
+  - Methodology gap у `manifest-extraction.json`: приклад `g3-invoice-wrong-semantic-role` перевикористовував документ, який класифікаційний маніфест сам очікує ESCALATE (через реальний pipeline extraction ніколи не запускався; Task 7 перевіряв `extract_fields()` ізольовано, минаючи класифікацію). Замінено на новий, дійсно ACCEPT-able fixture `evaluation/documents/g3-invoice-wrong-semantic-role-accepted.pdf`, маніфест і генератор оновлено, перевірено живим прогоном (входить у 27/27 вище).
+- Чесно задокументована, не виправлена знахідка: `tuning-incomplete-customs-fragment` (єдиний accepted_incorrect у v1) — visual fallback навів валідну (реально присутню) цитату для `non_target_primary_purpose`, але семантично неправильно інтерпретував її: описав *назви* розділів customs declaration, тоді як документ явно каже, що ці розділи "unavailable". Evidence-валідація точних цитат не ловить цей клас помилок; задокументовано в [README.md](../../../README.md) як known limitation, а не підлаштовано під один приклад.
+- Fresh reviewer setup перевірено у окремому throwaway venv за кроками з README (dependency install, `docker compose up -d`, `migrate`, `runserver`, перший upload) — пройшло без відхилень.
+- Живий browser walkthrough: text-layer upload з extraction table; scanned document, врятований visual fallback, з visual-context extraction; повторне відкриття result/history з byte-identical original PDF — усі три сценарії підтверджені вручну через Browser pane.
+- **Відхилення від плану:** додано `--run-live` прапорець (план показує команду без нього) як safety gate, консистентний з усіма іншими live-виклик скриптами в проєкті — без нього команда лише валідує маніфести, не витрачаючи бюджет.
 
 ## 4. Матриця покриття погодженого дизайну
 

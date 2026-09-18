@@ -31,8 +31,10 @@ never a fallback trigger.
 - Fallback observations/metadata are persisted in their own nullable fields
   (`fallback_observations`, `fallback_metadata`), separate from primary
   results, so a fallback failure never overwrites the primary diagnostics
-  already recorded for the same attempt. Field-extraction persistence is
-  deferred until G3.
+  already recorded for the same attempt. Field extraction (Task 7/G3
+  contract, Task 8 implementation) has its own `extraction_status`/
+  `extraction_result`/`extraction_metadata` fields for the same reason: an
+  extraction failure never changes the classification already recorded.
 
 ## Local foundation setup
 
@@ -100,6 +102,79 @@ shows extracted fields (value, status, evidence, confidence) per the Task
 contradiction (e.g. identical shipper/consignee) is shown explicitly, not
 hidden behind a score; an extraction technical failure is reported
 separately and never changes the classification above it.
+
+## Evaluation command
+
+`evaluate_documents` (Task 9) runs the real upload -> classify -> route ->
+extract pipeline (the same `DocumentUploadForm`/`run_classification`
+entrypoints a real request goes through) against a labeled manifest, then
+deletes every attempt/file it created so evaluation runs never pollute the
+shared demo history. Without `--run-live` it only validates the manifest(s)
+and reports what it would run, at no API cost:
+
+```sh
+.venv/bin/python manage.py evaluate_documents \
+  --manifest evaluation/manifest-v1.json \
+  --output evaluation/results/final-v1.json \
+  --run-live
+```
+
+`--extraction-manifest` (default `evaluation/manifest-extraction.json`)
+adds a field-extraction pass over its own set of examples; pass a
+non-existent path to skip it. The written report is sanitized (counts and
+per-document outcomes only, no raw document text).
+
+## Delivery review (G4)
+
+A full live regression was run against both labeled classification
+manifests plus the extraction manifest right before delivery:
+
+- `manifest-v1.json` (22 documents): 16 accepted_correct, 1
+  accepted_incorrect, 3 expected_escalation, 2
+  semantic_uncertainty_correct, 0 technical_failure.
+- `manifest-v2.json` (12 held-out documents): 10 accepted_correct, 0
+  incorrect, 1 expected_escalation, 1 semantic_uncertainty_correct, 0
+  technical_failure — 100% correct behavior on this split.
+- `manifest-extraction.json` (5 documents, 27 fields): 27/27 field
+  matches.
+
+Two findings surfaced during this regression and are disclosed rather than
+silently patched, per this project's evidence-based, no-silent-tuning
+approach:
+
+- **`tuning-incomplete-customs-fragment` (the one accepted_incorrect
+  case):** re-inspecting the attempt's own persisted observations (before
+  deleting it) showed the visual fallback's evidence for
+  `non_target_primary_purpose` was semantically wrong — it described the
+  customs-declaration section's *labels* as if their *content* were
+  present, when the document explicitly states those sections are
+  "unavailable." The evidence string itself was a real, present quote (it
+  passed exact-match validation); the error is in interpreting what that
+  quote means, which the current evidence-validation contract cannot catch.
+  Left as a known limitation rather than tuned around with one example.
+- **Extraction manifest methodology gap:** the original
+  `g3-invoice-wrong-semantic-role` example reused a document that the
+  classification manifest itself expects to `ESCALATE`, so through the real
+  pipeline it never reaches `ACCEPTED` and extraction never runs (Task 7's
+  own isolated `extract_fields()` check had bypassed classification
+  entirely, masking this). Fixed by replacing it with a new,
+  genuinely-acceptable fixture,
+  `g3-invoice-wrong-semantic-role-accepted.pdf`, that keeps the intended
+  placeholder-due-date trap; the manifest and generator were updated and
+  the fix was verified live (27/27 above already reflects it).
+
+The setup steps above were also re-verified from a fresh throwaway virtual
+environment, and a live browser walkthrough covered all three delivery
+scenarios: a text-layer upload with its extraction table, a scanned
+document rescued by visual fallback with visual-context extraction, and
+reopening a past result/history entry alongside its byte-identical original
+PDF.
+
+The 82 automated tests (`documents/tests/`) demonstrate control-flow
+correctness — routing rules, retry/validation logic, persistence
+boundaries — using faked OpenAI responses; they are not, and are not
+presented as, empirical evidence of live model quality. The counts above,
+from real API calls against real documents, are that evidence.
 
 ## Current limitations
 
