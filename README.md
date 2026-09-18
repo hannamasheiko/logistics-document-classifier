@@ -1,61 +1,209 @@
-# Logistics document classifier
+# Logistics Document Classifier
 
-The repository contains a working end-to-end classification flow: upload a
-text-layer or scanned PDF, get it classified as `INVOICE`, `BOL`, `POD`, or
-`OTHER` (or `UNCERTAIN`/`FAILED`), and review the result, history, and
-original PDF through a minimal Django UI. Scanned pages go through local OCR
-first; when the primary text/OCR classification cannot accept a result, one
-visual fallback call reviews the original PDF's page images directly. An
-established combined BOL/POD document is a deliberate semantic `UNCERTAIN`,
-never a fallback trigger.
+## Project Overview
 
-## G0 foundation decisions
+This is a Django application for classifying PDF documents used in American
+logistics. A user uploads a single PDF through the web interface, after which
+the system analyzes the document, determines its type, and stores the result
+together with the original file.
 
-- Python 3.14, Django 5.2 LTS, PostgreSQL 18, Psycopg 3, pypdf, and the OpenAI
-  Python SDK are pinned in `requirements.txt` and `compose.yaml`.
-- One upload is one document with at most 10 pages and 10,000,000 bytes.
-- Intake validates PDF content and page structure instead of trusting the file
-  extension or MIME type. Encrypted, corrupt, empty, oversized, and over-page-limit
-  PDFs are rejected before an attempt or media file is created.
-- A structurally valid image-only PDF passes intake. OCR and mixed-page policy
-  were designed and tested at G2 (`docs/experiments/scanned-fallback.md`)
-  and are wired into production processing.
-- Every accepted upload creates a distinct `ProcessingAttempt` and local media
-  file, including repeated uploads of identical content.
-- The lifecycle begins at `PROCESSING` because validation and durable storage
-  precede attempt creation. Terminal states are `ACCEPTED`, `UNCERTAIN`, and
-  `FAILED`.
-- The model stores normalized primary observations/configuration, nullable final
-  result fields, and sanitized failure details. Candidate output does not become
-  an accepted label until routing accepts it.
-- Fallback observations/metadata are persisted in their own nullable fields
-  (`fallback_observations`, `fallback_metadata`), separate from primary
-  results, so a fallback failure never overwrites the primary diagnostics
-  already recorded for the same attempt. Field extraction (Task 7/G3
-  contract, Task 8 implementation) has its own `extraction_status`/
-  `extraction_result`/`extraction_metadata` fields for the same reason: an
-  extraction failure never changes the classification already recorded.
+The application supports text-based and scanned PDFs and distinguishes four
+classes:
 
-## Local foundation setup
+- `INVOICE` — an invoice for transportation or logistics services;
+- `BOL` — Bill of Lading;
+- `POD` — Proof of Delivery;
+- `OTHER` — a document that does not belong to the three target classes.
 
-Create and activate a Python 3.14 virtual environment, then install the pinned
-dependencies:
+If the available evidence is insufficient or the document has an established
+semantic ambiguity, the system does not guess the class and returns
+`UNCERTAIN`. Technical errors are handled separately with the `FAILED` status.
 
-```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
+## Project Goal
+
+The goal is to build a clear end-to-end process for handling logistics
+documents: from uploading a PDF to verifiable classification, extraction of
+key fields, and subsequent review of the stored result.
+
+The system's key principle is that the language model identifies structured
+features and evidence in the document, while the backend uses deterministic
+rules to decide whether the result can be accepted. The routing score indicates
+the completeness of critical evidence, not the statistical probability that
+the class is correct.
+
+## What Is Implemented
+
+- upload of a single PDF through the Django UI;
+- validation of the PDF structure, size up to 10 MB, and page count up to 10;
+- support for PDFs with a text layer and scanned documents;
+- local OCR of each page using Tesseract;
+- classification into `INVOICE`, `BOL`, `POD`, or `OTHER`;
+- evidence-based routing with backend score calculation;
+- one visual fallback if the text/OCR classification result cannot be
+  accepted;
+- separate `ACCEPTED`, `UNCERTAIN`, and `FAILED` states;
+- separate behavior for combined BOL/POD documents;
+- extraction of class-specific fields for accepted `INVOICE`, `BOL`, and
+  `POD` documents;
+- validation of evidence, date formats, amounts, and identifiers;
+- explainable confidence for extracted fields;
+- storage of the result, metadata, and original PDF;
+- result, upload history, and original file viewing pages;
+- automated tests and a command for evaluation against prepared manifests.
+
+## How the Application Works
+
+```mermaid
+flowchart TD
+    A[Upload PDF] --> B{Validate PDF,<br/>10 MB and 10 pages}
+    B -->|Failed| C[Reject without creating a record]
+    B -->|Passed| D[Store original<br/>and ProcessingAttempt]
+    D --> E[Extract native text<br/>and OCR each page]
+    E --> F{Is usable text available?}
+    F -->|Yes| G[Primary classification:<br/>class, features, and evidence]
+    F -->|No| K[Visual fallback:<br/>PDF page images]
+    G --> H{Deterministic routing}
+    H -->|Sufficient evidence| I[ACCEPTED]
+    H -->|Established combined BOL/POD| J[UNCERTAIN without fallback]
+    H -->|Insufficient evidence<br/>or contradictions| K
+    K --> L{Validate visual evidence}
+    L -->|Sufficient evidence| I
+    L -->|Unreliable result| J
+    I --> M{Does the class support<br/>field extraction?}
+    M -->|INVOICE / BOL / POD| N[Extract and validate fields]
+    M -->|OTHER| O[Stored result]
+    N --> O
+    J --> O
+    D -. Technical error .-> P[FAILED]
+    P --> O
+    O --> Q[Result / History / Original PDF]
 ```
 
-The checked-in Compose defaults are deliberately local-only placeholders. Start
-PostgreSQL and apply the schema:
+## Main Processing Flow
+
+1. **Document intake.** The user selects a PDF in the web interface. The
+   system validates the file's content and structure, not only its extension
+   or MIME type.
+2. **Processing attempt creation.** A valid PDF is stored in local media, and
+   a separate `ProcessingAttempt` is created in PostgreSQL. Uploading the same
+   file again creates a new attempt.
+3. **Text extraction.** For each page, the system reads native PDF text and
+   performs local OCR in parallel. The more meaningful version of the page
+   text is selected for further processing.
+4. **Primary classification.** The OpenAI model returns a candidate class,
+   class-specific features, and evidence. The model does not determine the
+   final status or assign a confidence score.
+5. **Routing.** The backend validates the structure and source of the
+   evidence, calculates critical-feature coverage, and makes one of three
+   decisions: accept the class, finish processing as semantically ambiguous,
+   or run the visual fallback.
+6. **Visual fallback.** If the text result is insufficient, the model analyzes
+   images of all pages from the original PDF once. The result goes through
+   backend routing again and is not accepted automatically.
+7. **Field extraction.** For accepted `INVOICE`, `BOL`, and `POD` documents,
+   the system extracts a defined set of fields. Values, evidence, formats, and
+   simple contradictions are validated separately. An extraction error does
+   not change an already accepted document classification.
+8. **Result storage.** The user sees the final status, class, score, fallback
+   information, and extracted fields. The result and original PDF can be
+   accessed again from the history page.
+
+## Main Components
+
+| Component | Responsibility |
+|---|---|
+| Django application layer | Upload form, views, URL routes, templates, and result storage |
+| PDF/OCR services | PDF validation, native text extraction, page rendering, and local OCR |
+| AI layer | Building OpenAI requests, structured output, and response validation |
+| Routing service | Deterministic decision between `ACCEPTED`, fallback, and `UNCERTAIN` |
+| PostgreSQL and local media | Metadata, processing results, and original PDFs |
+
+The project intentionally remains a monolithic Django application with
+synchronous processing. For the current scope, there are no separate worker
+processes, queues, or external file storage.
+
+## Technologies
+
+| Category | Technologies Used |
+|---|---|
+| Backend | Python 3.14, Django 5.2 LTS |
+| Database | PostgreSQL 18, Psycopg 3 |
+| AI | OpenAI Responses API, Structured Outputs |
+| PDF | pypdf, pypdfium2 |
+| OCR | Tesseract, pytesseract |
+| Test PDFs | ReportLab |
+| Local infrastructure | Docker Compose for PostgreSQL |
+
+## Local Setup
+
+### Prerequisites
+
+Before you begin, install:
+
+- Git;
+- Python 3.14;
+- Docker Desktop or Docker Engine with Compose;
+- Tesseract OCR with English language data;
+- an OpenAI API key.
+
+Install Tesseract on macOS:
 
 ```sh
-docker compose up -d
-.venv/bin/python manage.py migrate
+brew install tesseract
 ```
 
-To use custom local values, copy `.env.example` to ignored `.env`, replace its
-placeholder values, and export the variables into the shell before running Django:
+On Ubuntu/Debian:
+
+```sh
+sudo apt update
+sudo apt install tesseract-ocr
+```
+
+### 1. Clone the Repository
+
+```sh
+git clone https://github.com/hannamasheiko/logistics-document-classifier.git
+cd logistics-document-classifier
+```
+
+### 2. Create a Virtual Environment
+
+macOS or Linux:
+
+```sh
+python3.14 -m venv .venv
+source .venv/bin/activate
+```
+
+Windows PowerShell:
+
+```powershell
+py -3.14 -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+After activation, `(.venv)` usually appears at the beginning of the command
+line.
+
+### 3. Install Python Dependencies
+
+```sh
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+### 4. Configure Environment Variables
+
+Create a local `.env` from the provided example:
+
+```sh
+cp .env.example .env
+```
+
+Open `.env` and replace the placeholder values. Be sure to add your own
+`OPENAI_API_KEY`. Do not commit `.env` or add the key to the repository.
+
+Before starting Django, load the variables into the current shell session:
 
 ```sh
 set -a
@@ -63,134 +211,107 @@ source .env
 set +a
 ```
 
-Run the foundation checks:
+Docker Compose reads `.env` automatically, but Django does not load this file
+by itself. The `source .env` commands must be repeated in each new shell
+session.
+
+In Windows PowerShell, the variables from `.env` must be set manually in the
+current session or through the IDE run configuration.
+
+### 5. Start PostgreSQL
 
 ```sh
-.venv/bin/python manage.py check
-.venv/bin/python manage.py makemigrations --check --dry-run
-.venv/bin/python manage.py test documents.tests.test_intake
+docker compose up -d
 ```
 
-Uploaded PDFs are written beneath ignored `media/`. No API call is made by the
-Task 2 intake tests, nor by the Task 3/4 routing and pipeline tests, which
-fake the OpenAI boundary.
-
-## Running the classifier
-
-OCR requires a local `tesseract` binary (not pip-installable) with the
-English data file, e.g. on macOS: `brew install tesseract`.
-
-Classification calls the OpenAI Responses API, so set `OPENAI_API_KEY` in the
-shell running the server (never commit it; `.env.example` documents the
-expected variable names only):
+Check the container status:
 
 ```sh
-export OPENAI_API_KEY=...
-.venv/bin/python manage.py runserver
+docker compose ps
 ```
 
-Then open `http://127.0.0.1:8000/` to upload a PDF. Uploading redirects to a
-result page showing the accepted label and routing score, or the reason for
-`UNCERTAIN`/`FAILED`; `/history/` lists every attempt (shared demo history,
-no accounts); each result links to the stored original PDF. When a visual
-fallback was used, the result page says so and shows which path produced the
-accepted label.
-
-For an `ACCEPTED` `BOL`/`POD`/`INVOICE` (never `OTHER`), the result page also
-shows extracted fields (value, status, evidence, confidence) per the Task
-7/G3 contract (`docs/decisions/field-extraction-contract.md`). A field-level
-contradiction (e.g. identical shipper/consignee) is shown explicitly, not
-hidden behind a score; an extraction technical failure is reported
-separately and never changes the classification above it.
-
-## Evaluation command
-
-`evaluate_documents` (Task 9) runs the real upload -> classify -> route ->
-extract pipeline (the same `DocumentUploadForm`/`run_classification`
-entrypoints a real request goes through) against a labeled manifest, then
-deletes every attempt/file it created so evaluation runs never pollute the
-shared demo history. Without `--run-live` it only validates the manifest(s)
-and reports what it would run, at no API cost:
+### 6. Apply Migrations
 
 ```sh
-.venv/bin/python manage.py evaluate_documents \
-  --manifest evaluation/manifest-v1.json \
-  --output evaluation/results/final-v1.json \
-  --run-live
+python manage.py migrate
 ```
 
-`--extraction-manifest` (default `evaluation/manifest-extraction.json`)
-adds a field-extraction pass over its own set of examples; pass a
-non-existent path to skip it. The written report is sanitized (counts and
-per-document outcomes only, no raw document text).
+### 7. Check the Configuration
 
-## Delivery review (G4)
+```sh
+python manage.py check
+```
 
-A full live regression was run against both labeled classification
-manifests plus the extraction manifest right before delivery:
+Expected result:
 
-- `manifest-v1.json` (22 documents): 16 accepted_correct, 1
-  accepted_incorrect, 3 expected_escalation, 2
-  semantic_uncertainty_correct, 0 technical_failure.
-- `manifest-v2.json` (12 held-out documents): 10 accepted_correct, 0
-  incorrect, 1 expected_escalation, 1 semantic_uncertainty_correct, 0
-  technical_failure — 100% correct behavior on this split.
-- `manifest-extraction.json` (5 documents, 27 fields): 27/27 field
-  matches.
+```text
+System check identified no issues (0 silenced).
+```
 
-Two findings surfaced during this regression and are disclosed rather than
-silently patched, per this project's evidence-based, no-silent-tuning
-approach:
+### 8. Start the Application
 
-- **`tuning-incomplete-customs-fragment` (the one accepted_incorrect
-  case):** re-inspecting the attempt's own persisted observations (before
-  deleting it) showed the visual fallback's evidence for
-  `non_target_primary_purpose` was semantically wrong — it described the
-  customs-declaration section's *labels* as if their *content* were
-  present, when the document explicitly states those sections are
-  "unavailable." The evidence string itself was a real, present quote (it
-  passed exact-match validation); the error is in interpreting what that
-  quote means, which the current evidence-validation contract cannot catch.
-  Left as a known limitation rather than tuned around with one example.
-- **Extraction manifest methodology gap:** the original
-  `g3-invoice-wrong-semantic-role` example reused a document that the
-  classification manifest itself expects to `ESCALATE`, so through the real
-  pipeline it never reaches `ACCEPTED` and extraction never runs (Task 7's
-  own isolated `extract_fields()` check had bypassed classification
-  entirely, masking this). Fixed by replacing it with a new,
-  genuinely-acceptable fixture,
-  `g3-invoice-wrong-semantic-role-accepted.pdf`, that keeps the intended
-  placeholder-due-date trap; the manifest and generator were updated and
-  the fix was verified live (27/27 above already reflects it).
+```sh
+python manage.py runserver
+```
 
-The setup steps above were also re-verified from a fresh throwaway virtual
-environment, and a live browser walkthrough covered all three delivery
-scenarios: a text-layer upload with its extraction table, a scanned
-document rescued by visual fallback with visual-context extraction, and
-reopening a past result/history entry alongside its byte-identical original
-PDF.
+Open in your browser:
 
-The 82 automated tests (`documents/tests/`) demonstrate control-flow
-correctness — routing rules, retry/validation logic, persistence
-boundaries — using faked OpenAI responses; they are not, and are not
-presented as, empirical evidence of live model quality. The counts above,
-from real API calls against real documents, are that evidence.
+```text
+http://127.0.0.1:8000/
+```
 
-## Current limitations
+On the home page, select a PDF and click **Upload**. After processing is
+complete, the application opens the result page. The history is available at
+`http://127.0.0.1:8000/history/`.
 
-- The routing score is an evidence-completeness signal for the candidate
-  class's required features, not a probability of correctness; the same
-  applies to the visual fallback's own acceptance check.
-- Visual fallback evidence is a free-text human-review description, not a
-  machine-verified exact quote, since there is no source string to check an
-  image excerpt against — a real, documented reduction in verifiability
-  compared to primary text/OCR evidence.
-- At most one visual fallback call per attempt; a fallback that itself fails
-  technically is a `FAILED` attempt (the primary result stays available for
-  diagnostics), not a silent fallback-to-primary or a second escalation.
-- Real-world scanned documents (skew, physical photocopying, multi-generation
-  artifacts) were not tested; the Task 5/G2 experiment used synthetic
-  degradations only (see `docs/experiments/scanned-fallback.md`).
-- No content redaction: real uploaded document text/images are sent to the
-  OpenAI API as extracted, unlike the masked evaluation corpus in
-  `experiments/`.
+### 9. Stop the Local Database
+
+After you finish working, stop the PostgreSQL container:
+
+```sh
+docker compose down
+```
+
+The stored data remains in the Docker volume and will be available after the
+next `docker compose up -d`.
+
+## Running Tests
+
+The tests require PostgreSQL to be running:
+
+```sh
+python manage.py test documents.tests
+```
+
+Additional checks before submission:
+
+```sh
+python manage.py check
+python manage.py makemigrations --check --dry-run
+```
+
+The automated tests do not make live OpenAI calls: the external AI boundary
+is replaced with controlled responses. Separate PDF/OCR tests use local
+fixtures and the installed Tesseract.
+
+## Limitations
+
+- Processing is performed synchronously within the HTTP request.
+- History is shared among all users: the current version has no
+  authentication.
+- Original PDFs are stored locally in `media/`.
+- The routing score and field confidence are explainable indicators of
+  evidence quality, not calibrated probabilities.
+- Visual evidence describes what is seen on the page and cannot be validated
+  as an exact text quotation.
+- Real uploaded text and images are sent to the OpenAI API without automatic
+  masking of sensitive data.
+
+## Additional Documentation
+
+- [System design](docs/superpowers/specs/2026-09-16-document-classifier-design.md)
+- [Implementation plan](docs/superpowers/plans/2026-09-16-document-classifier-implementation-plan.md)
+- [Field extraction contract](docs/decisions/field-extraction-contract.md)
+- [Primary confidence experiment](docs/experiments/primary-confidence.md)
+- [OCR and visual fallback experiment](docs/experiments/scanned-fallback.md)
+- [AI-assisted workflow description in Ukrainian](AI_WORKFLOW_UA.md)
