@@ -10,7 +10,7 @@
       "expected_label": "BOL",
       "expected_outcome": "ACCEPT",
       "provenance": "user-supplied Task 1 control",
-      "redistribution": "not-established",
+      "redistribution": "allowed",
       "used_in_g1": true
     },
     {
@@ -21,7 +21,7 @@
       "expected_label": "POD",
       "expected_outcome": "ACCEPT",
       "provenance": "user-supplied Task 1 control",
-      "redistribution": "not-established",
+      "redistribution": "allowed",
       "used_in_g1": true
     },
     {
@@ -32,7 +32,7 @@
       "expected_label": "INVOICE",
       "expected_outcome": "ACCEPT",
       "provenance": "user-supplied Task 1 control",
-      "redistribution": "not-established",
+      "redistribution": "allowed",
       "used_in_g1": true
     },
     {
@@ -43,7 +43,7 @@
       "expected_label": "OTHER",
       "expected_outcome": "ACCEPT",
       "provenance": "user-supplied Task 1 control",
-      "redistribution": "not-established",
+      "redistribution": "allowed",
       "used_in_g1": true
     },
     {

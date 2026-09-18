@@ -32,9 +32,6 @@ media/
 .coverage
 htmlcov/
 
-# Downloaded third-party control PDFs (redistribution not established)
-experiments/local-control-pdfs/
-
 # Extracted third-party control text (kept local with source PDFs)
 experiments/local-control-text/
 

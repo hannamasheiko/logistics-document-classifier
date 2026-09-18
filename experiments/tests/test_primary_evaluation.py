@@ -95,7 +95,7 @@ class PrimaryEvaluationTests(unittest.TestCase):
 
     def test_all_redistributable_fixtures_exist_and_extract_as_one_page_text_pdfs(self):
         for manifest_path, expected_count in (
-            (MANIFEST_PATH, 18),
+            (MANIFEST_PATH, 22),
             (V2_MANIFEST_PATH, 12),
         ):
             manifest = load_manifest(manifest_path)
