@@ -1,30 +1,35 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Upload document</title>
-</head>
-<body>
-  <nav><a href="{% url 'documents:upload' %}">Upload</a> | <a href="{% url 'documents:history' %}">History</a></nav>
+{% extends "documents/base.html" %}
+
+{% block title %}Upload document{% endblock %}
+
+{% block content %}
   <h1>Upload a PDF for classification</h1>
-  <p>
+  <p class="lede">
     Accepted classes: INVOICE, BOL, POD, OTHER. At most 10 pages and 10,000,000 bytes.
     Both text-layer and scanned PDFs are supported: scanned pages go through local
     OCR, and when the text classification cannot accept a result, one visual
     fallback reviews the original page images. A document that cannot be classified
     with sufficient evidence ends as uncertain rather than a guess.
   </p>
-  <form method="post" enctype="multipart/form-data" id="upload-form">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    {{ form.document.errors }}
-    {{ form.document }}
-    <button type="submit" id="upload-submit">Upload</button>
-    <p id="upload-status" hidden>
-      Processing&hellip; OCR and AI analysis can take up to a minute or two,
-      especially for scanned documents.
-    </p>
-  </form>
+  <div class="card">
+    <form method="post" enctype="multipart/form-data" id="upload-form">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="field">
+        {{ form.document.label_tag }}
+        {{ form.document }}
+        {% if form.document.help_text %}
+          <p class="help-text">{{ form.document.help_text }}</p>
+        {% endif %}
+        {{ form.document.errors }}
+      </div>
+      <button type="submit" id="upload-submit">Upload</button>
+      <p id="upload-status" hidden>
+        Processing&hellip; OCR and AI analysis can take up to a minute or two,
+        especially for scanned documents.
+      </p>
+    </form>
+  </div>
   <script>
     document.getElementById("upload-form").addEventListener("submit", function (event) {
       var button = document.getElementById("upload-submit");
@@ -37,5 +42,4 @@
       document.getElementById("upload-status").hidden = false;
     });
   </script>
-</body>
-</html>
+{% endblock %}

@@ -7,7 +7,11 @@ from documents.services.pdf import PDFValidationError, inspect_pdf
 
 
 class DocumentUploadForm(forms.Form):
-    document = forms.FileField()
+    document = forms.FileField(
+        label="PDF document",
+        help_text="At most 10 pages and 10,000,000 bytes.",
+        widget=forms.ClearableFileInput(attrs={"accept": ".pdf,application/pdf"}),
+    )
 
     def clean_document(self):
         uploaded_file = self.cleaned_data["document"]
