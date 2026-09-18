@@ -345,6 +345,11 @@ Full reports: [evaluation/results/final-v1.json](evaluation/results/final-v1.jso
   a real section label but misread whether that section actually had content.
 - Real uploaded text and images are sent to the OpenAI API without automatic
   masking of sensitive data.
+- Deployment-only hardening (secure cookies, HSTS, SSL redirect) is gated
+  behind `DJANGO_DEBUG=false` and a few env vars documented in
+  `.env.example`; the default local setup intentionally runs without it, and
+  a real deployment still needs its own reverse-proxy/HTTPS setup beyond
+  what this project configures.
 
 ## Additional Documentation
 

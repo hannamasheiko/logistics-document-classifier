@@ -1,12 +1,24 @@
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "unsafe-development-key")
+UNSAFE_DEFAULT_SECRET_KEY = "unsafe-development-key"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", UNSAFE_DEFAULT_SECRET_KEY)
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    if host.strip()
+]
+
+if not DEBUG and SECRET_KEY == UNSAFE_DEFAULT_SECRET_KEY:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be set to a real secret when DJANGO_DEBUG=false."
+    )
 
 INSTALLED_APPS = [
     "django.contrib.auth",
@@ -18,8 +30,20 @@ INSTALLED_APPS = [
 STATIC_URL = "static/"
 
 MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# Deployment-only hardening: everything here is a no-op under the DEBUG=true
+# local default, so it never gets in the way of `runserver` over plain HTTP.
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SECURE_SSL_REDIRECT", "false").lower() == "true"
+SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_SECURE_HSTS_SECONDS", "0")) if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
+SECURE_HSTS_PRELOAD = SECURE_HSTS_SECONDS > 0
 ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {

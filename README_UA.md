@@ -341,6 +341,11 @@ pipeline end-to-end, а не calibrated production benchmark чи статист
   дійсно мав вміст.
 - Реальні завантажені тексти та зображення надсилаються до OpenAI API без
   автоматичного маскування чутливих даних.
+- Hardening лише для deployment (secure cookies, HSTS, SSL redirect)
+  вмикається через `DJANGO_DEBUG=false` і кілька env vars, задокументованих у
+  `.env.example`; локальний запуск за замовчуванням свідомо працює без цього,
+  а реальний deployment все одно потребує власного reverse-proxy/HTTPS
+  налаштування поза межами цього проєкту.
 
 ## Додаткова документація
 
