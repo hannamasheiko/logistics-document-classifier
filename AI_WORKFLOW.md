@@ -210,3 +210,19 @@ AI found and fixed a real bug on its own while writing the tests: the shared ret
 At the end, I confirmed it with a live run of all 5 examples prepared in Task 7 against the real API: all 27 expected field values matched exactly, including the "trap" case (a placeholder instead of a real value) and the contradiction case.
 
 At the start of Task 8, 30% of the 5-hour allowance and 18% of the weekly allowance had been used; at the time of this entry — 55% 5-hour and 21% weekly (i.e., 25 percentage points of the 5-hour allowance and 3 points of the weekly one spent on the task itself).
+
+## Task 9 — delivery evaluation and review (G4)
+
+Task 9 was mostly coding and live verification: the plan already clearly defined what needed to happen — a command for a real regression run, final checks, and an honest report, with no new architectural decisions.
+
+The main piece of work was a new management command, `evaluate_documents`, which runs real documents through the actual production pipeline (the same upload → classify → route → extract flow the UI uses), not a separate test implementation, and immediately deletes the records and files it creates so the evaluation doesn't pollute the shared demo history. AI asked me how much of a live run to do — both classification manifests plus extraction, or less — and I chose "both plus extraction."
+
+Two real problems came up during the run itself, unrelated to design. The first: a document that had previously passed cleanly started failing with a token-limit error, even after that limit had already been raised in Task 6. AI reran the same live call on the same document several times in a row and showed that reasoning-token usage varies heavily from call to call even on the exact same document — a property of the reasoning mode itself, not a one-off fluke. The limit was raised with real headroom, not tuned to fit one failed call.
+
+The second problem: one of the five extraction examples turned out to have never actually gone through real classification — the classification manifest itself expects that document to escalate, so extraction never runs on it in production, and Task 7 had only tested the isolated field-extraction function directly, bypassing classification entirely. AI gave me a choice: patch the old example or pick a new, genuinely acceptable document right away; I chose the second option. AI built a new synthetic invoice that actually gets accepted, while keeping the same "trap" — a placeholder instead of a real date.
+
+After these two fixes, the full live regression passed cleanly on both classification manifests and matched completely on extraction. Separately, AI found and honestly documented (without patching it after the fact) one genuine semantic error in the visual fallback: the model quoted a real, present piece of the document but misinterpreted it, describing section labels as if they contained content, when the document explicitly states those sections are unavailable.
+
+At the end, we again walked through a from-scratch setup in a separate temporary environment and three browser scenarios (a text document, a scanned document via visual fallback, reopening history) — during this, AI's browser tool briefly lost its connection to the local server, resolved by restarting it with an explicit address.
+
+At the start of Task 9, 55% of the 5-hour allowance and 21% of the weekly allowance had been used (Task 8's ending point); at the time of this entry — 87% 5-hour and 25% weekly (i.e., 32 percentage points of the 5-hour allowance and 4 points of the weekly one spent on the task itself).
