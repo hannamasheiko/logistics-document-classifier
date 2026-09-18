@@ -244,3 +244,19 @@ The audit also turned up stale text at the top of the design file, stating that 
 After that, we discussed possible improvements given limited remaining time. I decided not to expand scope with new classes, background workers, or other infrastructure, and to focus instead on demo quality: a "Processing…" state, UI polish, GitHub Actions, short verification results in the README, and a final run from a clean environment.
 
 At the start of the new Codex chat, 100% of the 5-hour allowance and 25% of the weekly allowance remained. After the audit, the fixes, the tests, the documentation update, and several approved commit/push steps, about 10% 5-hour and 12% weekly remained. So this cycle used up about 90 percentage points of the short-term limit and 13 points of the weekly one — another reminder of how expensive a full repository-wide audit is, even for a small amount of code change.
+
+## Back to Claude Code — analyzing fixes and polishing the project
+
+Reviewed all six commits from the Codex session. Agreed with the three technical fixes as sound. The full README rewrite — no: it lost the section with the live results and the disclosed findings. We went back and forth on the form and settled on a short "Evaluation" section with concrete numbers, without narrating how the issues were found.
+
+Before putting those numbers in, we only re-verified the extraction manifest live (not the full regression) — 27/27, no regression from the Codex fixes.
+
+Added a small UX improvement (a "Processing…" button state during processing). Separately ran into a CSS problem caused by a forgotten `DJANGO_DEBUG=false` in my terminal — fixed it. During a live test I found a real case where field extraction technically failed despite a perfect classification — traced it to the model quoting evidence imprecisely, and instead of loosening the check, strengthened the prompt's wording; 3/3 live reruns then succeeded on the first attempt. Separately discussed moving the OpenAI model into an environment variable — declined, the risk outweighed the convenience.
+
+Next, the presentational part: a shared layout, CSS, status badges, readable tables, mobile-friendly layout. Then deployment-only Django security hardening.
+
+Added GitHub Actions CI. The very first real run failed: one test required a real PDF that had never made it into git since Task 1, over unresolved redistribution rights. This is where we disagreed most sharply — I insisted on adding those documents to GitHub, AI warned about the copyright risk, but the call was mine: published all four Task 1 control PDFs, updated their status in the manifest, and the temporary skip-guard was then removed as no longer needed.
+
+Finally, asked for a full final analysis of the project against the original assignment, the design, and the plan, with a percentage assessment — no critical blockers found. Separately saved this session's technical log (Task 3–9 and everything after) alongside the Codex archives in `.ai-history/`.
+
+For this new 5-hour cycle of work in Claude Code, 49% of the 5-hour allowance and 31% of the weekly allowance have been used so far.
