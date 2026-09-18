@@ -40,6 +40,13 @@ class ViewTests(TestCase):
             follow=True,
         )
 
+    def test_upload_page_disables_submit_and_shows_processing_status(self) -> None:
+        response = self.client.get(reverse("documents:upload"))
+
+        self.assertContains(response, 'id="upload-submit"')
+        self.assertContains(response, 'id="upload-status"')
+        self.assertContains(response, "Processing")
+
     def test_valid_upload_creates_attempt_and_redirects_to_result(self) -> None:
         observations = make_observations("OTHER", OTHER_EVIDENCE)
         with patch("documents.services.processing.build_default_request") as mock_build:

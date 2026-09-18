@@ -14,12 +14,28 @@
     fallback reviews the original page images. A document that cannot be classified
     with sufficient evidence ends as uncertain rather than a guess.
   </p>
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" id="upload-form">
     {% csrf_token %}
     {{ form.non_field_errors }}
     {{ form.document.errors }}
     {{ form.document }}
-    <button type="submit">Upload</button>
+    <button type="submit" id="upload-submit">Upload</button>
+    <p id="upload-status" hidden>
+      Processing&hellip; OCR and AI analysis can take up to a minute or two,
+      especially for scanned documents.
+    </p>
   </form>
+  <script>
+    document.getElementById("upload-form").addEventListener("submit", function (event) {
+      var button = document.getElementById("upload-submit");
+      if (button.disabled) {
+        event.preventDefault();
+        return;
+      }
+      button.disabled = true;
+      button.textContent = "Processing…";
+      document.getElementById("upload-status").hidden = false;
+    });
+  </script>
 </body>
 </html>
