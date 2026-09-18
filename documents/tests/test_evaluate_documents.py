@@ -198,7 +198,7 @@ class EvaluateDocumentsCommandTests(TestCase):
         bol_observations = make_observations("BOL", BOL_EVIDENCE)
         actual_extraction_payload = {
             **default_extraction_payload("BOL"),
-            "bol_number": {"status": "present", "value": "BOL-1", "evidence": "BILL OF LADING"},
+            "bol_number": {"status": "present", "value": "BOL-1", "evidence": "BOL No: BOL-1"},
         }
         request, calls = make_dual_request(
             lambda: completed_response(bol_observations),

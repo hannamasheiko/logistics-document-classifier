@@ -181,10 +181,43 @@ class ValidateExtractionOutputTests(unittest.TestCase):
             validate_extraction_output(payload, "INVOICE", document_text="FFI-19024 only")
         self.assertEqual(raised.exception.code, "evidence_not_exact_substring")
 
+    def test_text_value_not_supported_by_its_evidence_is_rejected(self):
+        payload = make_payload(
+            "INVOICE",
+            present={"amount_due": ("$999.00", "Amount Due: $125.00")},
+        )
+
+        with self.assertRaises(ExtractionOutputValidationError) as raised:
+            validate_extraction_output(
+                payload,
+                "INVOICE",
+                document_text="Amount Due: $125.00",
+            )
+
+        self.assertEqual(raised.exception.code, "value_not_in_evidence")
+        self.assertEqual(raised.exception.observation_id, "amount_due")
+
+    def test_text_value_and_evidence_allow_whitespace_normalization(self):
+        payload = make_payload(
+            "INVOICE",
+            present={
+                "provider": (
+                    "Acme Logistics\nDallas, TX",
+                    "Provider: Acme Logistics\nDallas, TX",
+                )
+            },
+        )
+
+        validate_extraction_output(
+            payload,
+            "INVOICE",
+            document_text="Provider: Acme Logistics\nDallas, TX",
+        )
+
     def test_visual_context_skips_exact_substring_check(self):
         payload = make_payload(
             "INVOICE",
-            present={"invoice_number": ("FFI-19024", "top-right corner reads FFI-19024")},
+            present={"invoice_number": ("FFI-19024", "invoice number appears at top right")},
         )
         validate_extraction_output(payload, "INVOICE", document_text=None)
 

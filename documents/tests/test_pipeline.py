@@ -123,6 +123,7 @@ def make_dual_request(primary_response, visual_response=None, extraction_respons
 
 BOL_LINES = [
     "BILL OF LADING",
+    "BOL No: BOL-1",
     "CARRIER RECEIVED GOODS FOR TRANSPORT TO CONSIGNEE",
     "CARRIER ACME CONSIGNEE BETA CARGO WIDGETS WEIGHT 500 LB",
 ]
@@ -336,7 +337,7 @@ class PipelineTests(TestCase):
         observations = make_observations("BOL", BOL_EVIDENCE)
         extraction_payload = {
             **default_extraction_payload("BOL"),
-            "bol_number": {"status": "present", "value": "BOL-1", "evidence": "BILL OF LADING"},
+            "bol_number": {"status": "present", "value": "BOL-1", "evidence": "BOL No: BOL-1"},
         }
         request, calls = make_dual_request(
             lambda: completed_response(observations),

@@ -108,6 +108,7 @@ class ExtractionOutputValidationError(StructuredOutputValidationError):
             "missing_present_value": "Present field requires a value.",
             "missing_present_evidence": "Present field requires evidence.",
             "evidence_not_exact_substring": "Evidence is not an exact substring.",
+            "value_not_in_evidence": "Field value is not supported by its evidence.",
             "non_null_inactive_value_or_evidence": "Value/evidence must be null unless present.",
         }
         super().__init__(messages[code])
@@ -255,6 +256,11 @@ def validate_extraction_output(payload: dict, class_name: str, document_text: st
                 raise ExtractionOutputValidationError("missing_present_evidence", field_name)
             if document_text is not None and not evidence_matches_source(evidence, document_text):
                 raise ExtractionOutputValidationError("evidence_not_exact_substring", field_name)
+            if document_text is not None:
+                normalized_value = re.sub(r"\s+", " ", value).strip()
+                normalized_evidence = re.sub(r"\s+", " ", evidence).strip()
+                if normalized_value not in normalized_evidence:
+                    raise ExtractionOutputValidationError("value_not_in_evidence", field_name)
         elif value is not None or evidence is not None:
             raise ExtractionOutputValidationError("non_null_inactive_value_or_evidence", field_name)
 

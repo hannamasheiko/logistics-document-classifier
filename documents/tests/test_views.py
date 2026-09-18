@@ -169,7 +169,7 @@ class ViewTests(TestCase):
         observations = make_observations("BOL", BOL_EVIDENCE)
         extraction_payload = {
             **default_extraction_payload("BOL"),
-            "bol_number": {"status": "present", "value": "RBL-20773", "evidence": "BILL OF LADING"},
+            "bol_number": {"status": "present", "value": "BOL-1", "evidence": "BOL No: BOL-1"},
         }
         request, calls = make_dual_request(
             lambda: completed_response(observations),
@@ -181,7 +181,7 @@ class ViewTests(TestCase):
 
         self.assertEqual(len(calls["extraction"]), 1)
         self.assertContains(response, "Extracted fields")
-        self.assertContains(response, "RBL-20773")
+        self.assertContains(response, "BOL-1")
         self.assertContains(response, "bol_number")
 
     def test_extraction_failure_note_is_shown_without_fake_field_values(self) -> None:
@@ -210,7 +210,7 @@ class ViewTests(TestCase):
         observations = make_observations("BOL", BOL_EVIDENCE)
         extraction_payload = {
             **default_extraction_payload("BOL"),
-            "bol_number": {"status": "present", "value": "RBL-20773", "evidence": "BILL OF LADING"},
+            "bol_number": {"status": "present", "value": "BOL-1", "evidence": "BOL No: BOL-1"},
         }
         request, _calls = make_dual_request(
             lambda: completed_response(observations),
@@ -224,7 +224,7 @@ class ViewTests(TestCase):
         reopened = self.client.get(reverse("documents:result", args=[attempt.pk]))
 
         self.assertContains(reopened, "Extracted fields")
-        self.assertContains(reopened, "RBL-20773")
+        self.assertContains(reopened, "BOL-1")
         self.assertContains(reopened, reverse("documents:original", args=[attempt.pk]))
 
         original_response = self.client.get(reverse("documents:original", args=[attempt.pk]))
