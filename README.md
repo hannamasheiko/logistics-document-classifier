@@ -1,5 +1,7 @@
 # Logistics Document Classifier
 
+[![CI](https://github.com/hannamasheiko/logistics-document-classifier/actions/workflows/ci.yml/badge.svg)](https://github.com/hannamasheiko/logistics-document-classifier/actions/workflows/ci.yml)
+
 ## Project Overview
 
 This is a Django application for classifying PDF documents used in American
