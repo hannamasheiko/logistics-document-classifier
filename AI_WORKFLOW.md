@@ -226,3 +226,21 @@ After these two fixes, the full live regression passed cleanly on both classific
 At the end, we again walked through a from-scratch setup in a separate temporary environment and three browser scenarios (a text document, a scanned document via visual fallback, reopening history) — during this, AI's browser tool briefly lost its connection to the local server, resolved by restarting it with an explicit address.
 
 At the start of Task 9, 55% of the 5-hour allowance and 21% of the weekly allowance had been used (Task 8's ending point); at the time of this entry — 87% 5-hour and 25% weekly (i.e., 32 percentage points of the 5-hour allowance and 4 points of the weekly one spent on the task itself).
+
+## After Task 9 — back to Codex for an audit of the finished project
+
+After finishing Task 9 in Claude Code, I ran into the allowance limit again, so I went back to Codex and opened a new chat specifically for an independent audit of the finished project. I asked it to re-read the design, the implementation plan, the AI-assisted workflow, and the code, reconstruct the overall development process, and check the implementation against the original assignment.
+
+Codex judged the project largely complete but found a few concrete technical issues. I decided to go through them one at a time: first asking for an explanation of the problem, a proposed fix, and its impact on the existing workflow, then separately approving the implementation, the tests, the commit message, and the push.
+
+During this stage we fixed three problems: correct finalization of `ProcessingAttempt` on unexpected errors, validation of monetary amounts, and a check that an extracted value is actually supported by its own evidence. All fixes were covered by new tests. I deliberately chose not to touch the stricter visual-evidence-validation problem for now, since it would need a new contract or an extra model call and could affect an already-verified part of the workflow.
+
+After the technical fixes, I decided to fully revisit the README. The existing version was overloaded with internal detail and didn't present the project clearly enough. We first prepared a new `README_UA.md` describing the goal, capabilities, workflow, technologies, setup, tests, and limitations, and once I approved it, Codex translated it into English without changing its structure or content. I also separately corrected the commit message wording so the Git history accurately reflects the nature of the changes.
+
+At the end, Codex re-verified the project: all 130 tests passed (91 in `documents.tests`, 39 in `experiments/tests`), the Django system check and migration check were clean, and there were no dependency conflicts. A live confirmation run on the held-out `manifest-v2` (12 documents) showed 10 correctly accepted classifications with no accepted errors, one expected escalation, one correct semantic uncertainty, and 27/27 correct extraction fields — without contradicting the already-documented state of the main (`manifest-v1`) regression. The project was assessed at roughly 95–96% readiness for submission, with no critical functional blockers.
+
+The audit also turned up stale text at the top of the design file, stating that planning and implementation had not yet started. I decided not to rewrite the design after the fact, just to remove that no-longer-accurate introduction, leaving the rest of the document unchanged.
+
+After that, we discussed possible improvements given limited remaining time. I decided not to expand scope with new classes, background workers, or other infrastructure, and to focus instead on demo quality: a "Processing…" state, UI polish, GitHub Actions, short verification results in the README, and a final run from a clean environment.
+
+At the start of the new Codex chat, 100% of the 5-hour allowance and 25% of the weekly allowance remained. After the audit, the fixes, the tests, the documentation update, and several approved commit/push steps, about 10% 5-hour and 12% weekly remained. So this cycle used up about 90 percentage points of the short-term limit and 13 points of the weekly one — another reminder of how expensive a full repository-wide audit is, even for a small amount of code change.
